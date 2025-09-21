@@ -16,7 +16,11 @@ import {
   TestTube, 
   Clock,
   Zap,
-  Activity
+  Activity,
+  Wifi,
+  Check,
+  X,
+  Loader
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -27,6 +31,8 @@ export default function Settings() {
   const queryClient = useQueryClient();
   const [editingZone, setEditingZone] = useState<any>(null);
   const [testDuration, setTestDuration] = useState<number>(5);
+  const [piIpAddress, setPiIpAddress] = useState<string>(localStorage.getItem('piIpAddress') || '192.168.1.100');
+  const [connectionStatus, setConnectionStatus] = useState<'idle' | 'testing' | 'success' | 'error'>('idle');
 
   const { data: zones = [], isLoading } = useQuery({
     queryKey: ['/api/zones'],
@@ -102,6 +108,51 @@ export default function Settings() {
     },
   });
 
+  const testConnectionMutation = useMutation({
+    mutationFn: async (ipAddress: string) => {
+      const response = await fetch(`http://${ipAddress}/health`);
+      if (!response.ok) throw new Error('Connection failed');
+      return response.json();
+    },
+    onSuccess: () => {
+      setConnectionStatus('success');
+      toast({
+        title: "Connection Success",
+        description: "Successfully connected to Raspberry Pi",
+      });
+    },
+    onError: () => {
+      setConnectionStatus('error');
+      toast({
+        title: "Connection Failed",
+        description: "Could not connect to Raspberry Pi. Check IP address and network.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const savePiIpMutation = useMutation({
+    mutationFn: async (ipAddress: string) => {
+      localStorage.setItem('piIpAddress', ipAddress);
+      return ipAddress;
+    },
+    onSuccess: () => {
+      toast({
+        title: "IP Address Saved",
+        description: "Raspberry Pi IP address has been saved",
+      });
+    },
+  });
+
+  const handleSavePiIp = () => {
+    savePiIpMutation.mutate(piIpAddress);
+  };
+
+  const handleTestConnection = () => {
+    setConnectionStatus('testing');
+    testConnectionMutation.mutate(piIpAddress);
+  };
+
   const handleUpdateZone = (zoneId: string, updates: any) => {
     updateZoneMutation.mutate({ zoneId, updates });
   };
@@ -153,6 +204,71 @@ export default function Settings() {
           <h1 className="text-2xl font-bold text-foreground">Settings</h1>
           <p className="text-muted-foreground">Zone configuration and system settings</p>
         </div>
+
+        {/* Raspberry Pi Configuration */}
+        <Card className="mb-6" data-testid="pi-configuration">
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <Wifi className="w-5 h-5" />
+              <span>Raspberry Pi Configuration</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <Label htmlFor="pi-ip-address">Raspberry Pi IP Address</Label>
+              <div className="flex space-x-2 mt-2">
+                <Input
+                  id="pi-ip-address"
+                  type="text"
+                  placeholder="192.168.1.100"
+                  value={piIpAddress}
+                  onChange={(e) => setPiIpAddress(e.target.value)}
+                  className="flex-1"
+                  data-testid="input-pi-ip"
+                />
+                <Button
+                  onClick={handleSavePiIp}
+                  disabled={savePiIpMutation.isPending}
+                  variant="outline"
+                  data-testid="button-save-ip"
+                >
+                  {savePiIpMutation.isPending ? "Saving..." : "Save"}
+                </Button>
+                <Button
+                  onClick={handleTestConnection}
+                  disabled={testConnectionMutation.isPending || !piIpAddress}
+                  data-testid="button-test-connection"
+                >
+                  {testConnectionMutation.isPending ? (
+                    <Loader className="w-4 h-4 mr-2 animate-spin" />
+                  ) : connectionStatus === 'success' ? (
+                    <Check className="w-4 h-4 mr-2" />
+                  ) : connectionStatus === 'error' ? (
+                    <X className="w-4 h-4 mr-2" />
+                  ) : (
+                    <Wifi className="w-4 h-4 mr-2" />
+                  )}
+                  Test
+                </Button>
+              </div>
+            </div>
+            
+            <div className="p-3 bg-muted/50 rounded-lg">
+              <p className="text-sm text-muted-foreground">
+                <strong>Current IP:</strong> {piIpAddress}<br />
+                <strong>Status:</strong> 
+                <span className={`ml-1 ${connectionStatus === 'success' ? 'text-green-600' : connectionStatus === 'error' ? 'text-red-600' : 'text-muted-foreground'}`}>
+                  {connectionStatus === 'success' ? 'Connected' : connectionStatus === 'error' ? 'Connection Failed' : connectionStatus === 'testing' ? 'Testing...' : 'Not Tested'}
+                </span>
+              </p>
+              <p className="text-xs text-muted-foreground mt-2">
+                Enter the local IP address of your Raspberry Pi running the sprinkler control service.
+                Example: 192.168.1.100 or 10.0.0.50
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* System Status Bar */}
         <Card className="mb-6" data-testid="zone-status-overview">
           <CardContent className="p-6">
