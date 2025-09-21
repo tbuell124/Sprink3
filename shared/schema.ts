@@ -138,19 +138,69 @@ export type InsertSystemStatus = z.infer<typeof insertSystemStatusSchema>;
 export type Notification = typeof notifications.$inferSelect;
 export type InsertNotification = z.infer<typeof insertNotificationSchema>;
 
+// Default GPIO pin mappings (matches Python backend)
+export const DEFAULT_GPIO_PINS = [12, 16, 20, 21, 26, 19, 13, 6, 5, 11, 9, 10, 22, 27, 17, 4];
+
+// GPIO Safety Allowlist - excludes critical I²C/UART pins
+export const SAFE_GPIO_PINS = [
+  // Safe GPIO pins for sprinkler control (excluding I²C, UART, SPI, etc.)
+  12, 16, 20, 21, 26, 19, 13, 6, 5, 11, 9, 10, 22, 27, 17, 4, 18, 23, 24, 25
+];
+
+// Dangerous pins that should never be used for sprinkler control
+export const RESTRICTED_GPIO_PINS = [
+  0, 1,   // I²C (ID_SD, ID_SC)
+  2, 3,   // I²C (SDA, SCL)
+  7, 8,   // SPI (CE1, CE0)
+  14, 15, // UART (TXD, RXD)
+];
+
+// Duration limits and safety constraints
+export const SAFETY_LIMITS = {
+  MIN_DURATION_MINUTES: 1,
+  MAX_DURATION_MINUTES: 12 * 60, // 12 hours
+  DEFAULT_DURATION_MINUTES: 30,
+  MAX_CONCURRENT_ZONES: 4,
+  MIN_BREAK_BETWEEN_RUNS_MINUTES: 2,
+} as const;
+
+// Rain delay safety settings
+export const RAIN_DELAY_LIMITS = {
+  MIN_HOURS: 1,
+  MAX_HOURS: 14 * 24, // 14 days
+  DEFAULT_HOURS: 24,
+} as const;
+
 // Additional schemas for API validation
 export const zoneControlSchema = z.object({
-  duration: z.number().min(1).max(12 * 60).optional(), // 1 minute to 12 hours
+  duration: z.number()
+    .min(SAFETY_LIMITS.MIN_DURATION_MINUTES)
+    .max(SAFETY_LIMITS.MAX_DURATION_MINUTES)
+    .optional(),
+});
+
+// GPIO pin validation schema
+export const gpioPinSchema = z.object({
+  pin: z.number()
+    .refine(pin => SAFE_GPIO_PINS.includes(pin), {
+      message: "GPIO pin is not in the safe allowlist",
+    })
+    .refine(pin => !RESTRICTED_GPIO_PINS.includes(pin), {
+      message: "GPIO pin is restricted for safety reasons (I²C/UART/SPI)",
+    }),
 });
 
 export const rainDelaySchema = z.object({
   active: z.boolean(),
-  hours: z.number().min(1).max(14 * 24).optional(), // 1 hour to 14 days
+  hours: z.number()
+    .min(RAIN_DELAY_LIMITS.MIN_HOURS)
+    .max(RAIN_DELAY_LIMITS.MAX_HOURS)
+    .optional(),
 });
 
 export const scheduleStepUpdateSchema = z.object({
   zoneId: z.string(),
-  duration: z.number().min(1).max(12 * 60),
+  duration: z.number().min(SAFETY_LIMITS.MIN_DURATION_MINUTES).max(SAFETY_LIMITS.MAX_DURATION_MINUTES),
   stepOrder: z.number().min(0),
 });
 
@@ -166,6 +216,3 @@ export const loginSchema = z.object({
   username: z.string().min(1),
   password: z.string().min(1),
 });
-
-// Default GPIO pin mappings (matches Python backend)
-export const DEFAULT_GPIO_PINS = [12, 16, 20, 21, 26, 19, 13, 6, 5, 11, 9, 10, 22, 27, 17, 4];

@@ -15,7 +15,8 @@ import {
   Activity,
   Wifi,
   WifiOff,
-  Zap
+  Zap,
+  Timer
 } from "lucide-react";
 import { Link } from "wouter";
 import { useToast } from "@/hooks/use-toast";
@@ -208,33 +209,61 @@ export default function Dashboard() {
           <p className="text-muted-foreground">System status and zone controls</p>
         </div>
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <Card data-testid="stats-total-zones" className="zone-card">
+        <div 
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8"
+          role="region"
+          aria-label="System statistics overview"
+        >
+          <Card 
+            data-testid="stats-total-zones" 
+            className="zone-card accessible-button"
+            role="article"
+            aria-labelledby="total-zones-title"
+            aria-describedby="total-zones-desc"
+          >
             <CardContent className="p-6">
               <div className="flex items-center">
                 <div className="flex-1">
-                  <p className="text-sm font-medium text-muted-foreground">Total Zones</p>
-                  <p className="text-2xl font-bold text-foreground">{statsData.totalZones}</p>
+                  <p id="total-zones-title" className="text-sm font-medium text-muted-foreground">Total Zones</p>
+                  <p id="total-zones-desc" className="text-2xl font-bold text-foreground" aria-label={`${statsData.totalZones} zones configured`}>
+                    {statsData.totalZones}
+                  </p>
                 </div>
-                <div className="p-3 rounded-lg bg-blue-500/20 border border-blue-500/30">
+                <div className="p-3 rounded-lg bg-blue-500/20 border border-blue-500/30" aria-hidden="true">
                   <Droplets className="h-8 w-8 text-blue-400" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card data-testid="stats-active-zones" className={`zone-card ${statsData.activeZones > 0 ? 'zone-active-glow' : ''}`}>
+          <Card 
+            data-testid="stats-active-zones" 
+            className={`zone-card accessible-button ${statsData.activeZones > 0 ? 'zone-active-glow' : ''}`}
+            role="article"
+            aria-labelledby="active-zones-title"
+            aria-describedby="active-zones-desc"
+            aria-live="polite"
+          >
             <CardContent className="p-6">
               <div className="flex items-center">
                 <div className="flex-1">
-                  <p className="text-sm font-medium text-muted-foreground">Active Zones</p>
-                  <p className="text-2xl font-bold text-primary gradient-text">{statsData.activeZones}</p>
+                  <p id="active-zones-title" className="text-sm font-medium text-muted-foreground">Active Zones</p>
+                  <p 
+                    id="active-zones-desc" 
+                    className="text-2xl font-bold text-primary gradient-text"
+                    aria-label={`${statsData.activeZones} ${statsData.activeZones === 1 ? 'zone is' : 'zones are'} currently running`}
+                  >
+                    {statsData.activeZones}
+                  </p>
                 </div>
-                <div className={`p-3 rounded-lg border transition-all duration-300 ${
-                  statsData.activeZones > 0 
-                    ? 'bg-primary/20 border-primary/50 pulse-green' 
-                    : 'bg-primary/10 border-primary/20'
-                }`}>
+                <div 
+                  className={`p-3 rounded-lg border transition-all duration-300 ${
+                    statsData.activeZones > 0 
+                      ? 'bg-primary/20 border-primary/50 pulse-green' 
+                      : 'bg-primary/10 border-primary/20'
+                  }`}
+                  aria-hidden="true"
+                >
                   <Activity className="h-8 w-8 text-primary" />
                 </div>
               </div>
@@ -310,35 +339,69 @@ export default function Dashboard() {
                       <Badge 
                         variant={isActive ? "default" : "outline"}
                         className={isActive ? "bg-primary/20 text-primary border-primary/30" : ""}
+                        aria-label={`${zone.name} is ${isActive ? 'on' : 'off'}`}
                       >
                         {isActive ? "ON" : "OFF"}
                       </Badge>
                     </div>
                     
+                    <div className="grid grid-cols-4 gap-1 mb-2">
+                      {/* Quick duration presets */}
+                      {[5, 10, 15, 30].map((duration) => (
+                        <Button
+                          key={duration}
+                          size="sm"
+                          variant={isActive ? "outline" : "secondary"}
+                          className="h-7 text-xs accessible-button"
+                          onClick={() => handleQuickStart(zone.zoneNumber || zone.id, duration)}
+                          disabled={!isEnabled || startZoneMutation.isPending || isActive}
+                          data-testid={`start-zone-${zone.zoneNumber || zone.id}-${duration}min`}
+                          aria-label={`Start ${zone.name} for ${duration} minutes. ${isActive ? 'Currently running.' : 'Currently off.'}`}
+                          aria-describedby={`zone-${zone.zoneNumber || zone.id}-status`}
+                        >
+                          {duration}m
+                        </Button>
+                      ))}
+                    </div>
+                    
                     <div className="flex space-x-2">
                       <Button
                         size="sm"
-                        variant={isActive ? "outline" : "default"}
-                        className="flex-1 modern-button h-8"
-                        onClick={() => handleQuickStart(zone.zoneNumber || zone.id, 30)}
-                        disabled={!isEnabled || startZoneMutation.isPending || isActive}
-                        data-testid={`start-zone-${zone.zoneNumber || zone.id}`}
-                      >
-                        <Play className="w-3 h-3 mr-1" />
-                        30min
-                      </Button>
-                      <Button
-                        size="sm"
                         variant={isActive ? "destructive" : "outline"}
-                        className="flex-1 modern-button h-8"
+                        className="flex-1 modern-button h-8 accessible-button"
                         onClick={() => handleQuickStop(zone.zoneNumber || zone.id)}
                         disabled={!isEnabled || stopZoneMutation.isPending || !isActive}
                         data-testid={`stop-zone-${zone.zoneNumber || zone.id}`}
+                        aria-label={`Stop ${zone.name}. ${isActive ? 'Currently running. Double-tap to stop.' : 'Currently off.'} ${!isEnabled ? 'Zone disabled.' : ''}`}
+                        aria-describedby={`zone-${zone.zoneNumber || zone.id}-status`}
                       >
-                        <Square className="w-3 h-3 mr-1" />
-                        Stop
+                        <Square className="w-3 h-3 mr-1" aria-hidden="true" />
+                        {isActive ? "Stop" : "Quick Stop"}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="px-3 accessible-button"
+                        disabled={!isEnabled || startZoneMutation.isPending}
+                        data-testid={`custom-duration-${zone.zoneNumber || zone.id}`}
+                        aria-label={`Set custom duration for ${zone.name}`}
+                        title="Custom duration"
+                      >
+                        <Clock className="w-3 h-3" aria-hidden="true" />
                       </Button>
                     </div>
+                    
+                    {/* Hidden status description for screen readers */}
+                    <span 
+                      id={`zone-${zone.zoneNumber || zone.id}-status`} 
+                      className="sr-only"
+                      aria-live="polite"
+                    >
+                      {zone.name}, Zone {zone.zoneNumber}, GPIO {zone.gpioPin || zone.id}. 
+                      Status: {isActive ? 'Running' : 'Stopped'}. 
+                      {!isEnabled && 'Zone is disabled.'}
+                      {isActive && zone.minutesLeft && ` ${zone.minutesLeft} minutes remaining.`}
+                    </span>
                     
                     {!isEnabled && (
                       <p className="text-xs text-muted-foreground mt-2 text-center">
