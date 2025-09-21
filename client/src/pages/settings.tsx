@@ -33,11 +33,19 @@ import {
   usePiZones 
 } from "@/hooks/use-pi-api";
 import { PiConnectionError, getNetworkTroubleshootingTips } from "@/lib/pi-api";
+import type { Zone } from "@shared/schema";
+
+// Extended zone type for UI with runtime properties
+interface ZoneWithStatus extends Zone {
+  isRunning?: boolean;
+  minutesLeft?: number;
+  currentRunSource?: string;
+}
 
 export default function Settings() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [editingZone, setEditingZone] = useState<any>(null);
+  const [editingZone, setEditingZone] = useState<ZoneWithStatus | null>(null);
   const [testDuration, setTestDuration] = useState<number>(5);
   const [piIpAddress, setPiIpAddress] = useState<string>(localStorage.getItem('piIpAddress') || '192.168.1.100');
   const [piPort, setPiPort] = useState<number>(parseInt(localStorage.getItem('piPort') || '8000'));
@@ -58,7 +66,7 @@ export default function Settings() {
   });
   
   // Ensure zones is properly typed
-  const typedZones = zones as any[];
+  const typedZones = zones as ZoneWithStatus[];
 
   const { data: systemStatus } = useQuery({
     queryKey: ['/api/status'],
@@ -210,9 +218,9 @@ export default function Settings() {
     );
   }
 
-  const activeZones = typedZones.filter((zone: any) => zone.isRunning);
-  const enabledZones = typedZones.filter((zone: any) => zone.isEnabled);
-  const disabledZones = typedZones.filter((zone: any) => !zone.isEnabled);
+  const activeZones = typedZones.filter((zone: ZoneWithStatus) => zone.isRunning);
+  const enabledZones = typedZones.filter((zone: ZoneWithStatus) => zone.isEnabled);
+  const disabledZones = typedZones.filter((zone: ZoneWithStatus) => !zone.isEnabled);
 
   return (
     <div className="flex-1 flex flex-col pb-20">
@@ -406,7 +414,7 @@ export default function Settings() {
         <Tabs defaultValue="all" className="space-y-6" data-testid="zone-tabs">
           <TabsList>
             <TabsTrigger value="all" data-testid="tab-all">
-              All Zones ({zones.length})
+              All Zones ({typedZones.length})
             </TabsTrigger>
             <TabsTrigger value="active" data-testid="tab-active">
               Active ({activeZones.length})
@@ -540,11 +548,11 @@ export default function Settings() {
 }
 
 interface ZoneGridProps {
-  zones: any[];
-  onEdit: (zone: any) => void;
+  zones: ZoneWithStatus[];
+  onEdit: (zone: ZoneWithStatus) => void;
   onTest: (zoneNumber: number) => void;
   onStop: (zoneNumber: number) => void;
-  onToggleEnabled: (zone: any) => void;
+  onToggleEnabled: (zone: ZoneWithStatus) => void;
   testDuration: number;
   isLoading: boolean;
 }
@@ -564,7 +572,7 @@ function ZoneGrid({ zones, onEdit, onTest, onStop, onToggleEnabled, testDuration
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-      {zones.map((zone: any) => (
+      {zones.map((zone: ZoneWithStatus) => (
         <Card key={zone.id} className={`${zone.isRunning ? 'ring-2 ring-green-500' : ''}`} data-testid={`zone-card-${zone.zoneNumber}`}>
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
