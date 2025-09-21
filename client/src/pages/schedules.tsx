@@ -25,10 +25,18 @@ import type { Zone, Schedule, ScheduleStep } from "@shared/schema";
 
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as const;
 
-// Types for schedule form - extend shared ScheduleStep with UI-only fields
-interface UIScheduleStep extends ScheduleStep {
+// Types for schedule form
+interface UIScheduleStep {
+  zoneId: string;
+  duration: number;
+  stepOrder: number;
   zoneName?: string;
   zoneNumber?: number;
+}
+
+interface ScheduleWithSteps extends Schedule {
+  steps?: ScheduleStep[];
+  totalDuration?: number;
 }
 
 interface ScheduleFormData {
@@ -44,17 +52,17 @@ export default function Schedules() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isCreating, setIsCreating] = useState(false);
-  const [editingSchedule, setEditingSchedule] = useState<Schedule | null>(null);
+  const [editingSchedule, setEditingSchedule] = useState<ScheduleWithSteps | null>(null);
   const [formData, setFormData] = useState<ScheduleFormData>({
     name: "",
     startTime: "06:00",
     days: [] as string[],
     isEnabled: true,
     defaultDurationPerZone: 30,
-    steps: [] as ScheduleStep[],
+    steps: [] as UIScheduleStep[],
   });
 
-  const { data: schedules = [], isLoading: schedulesLoading } = useQuery<Schedule[]>({
+  const { data: schedules = [], isLoading: schedulesLoading } = useQuery<ScheduleWithSteps[]>({
     queryKey: ['/api/schedules'],
     refetchInterval: 30000,
   });
@@ -220,7 +228,7 @@ export default function Schedules() {
     }));
   };
 
-  const updateStep = (index: number, field: keyof ScheduleStep, value: any) => {
+  const updateStep = (index: number, field: keyof UIScheduleStep, value: string | number) => {
     setFormData(prev => ({
       ...prev,
       steps: prev.steps.map((step, i) => 
@@ -270,7 +278,7 @@ export default function Schedules() {
     }
   };
 
-  const startEdit = (schedule: any) => {
+  const startEdit = (schedule: ScheduleWithSteps) => {
     setEditingSchedule(schedule);
     setFormData({
       name: schedule.name,
@@ -452,7 +460,7 @@ export default function Schedules() {
                       
                       {/* Horizontal timeline */}
                       <div className="space-y-2 max-h-60 overflow-y-auto">
-                        {calculateZoneTiming.map((timing, index) => (
+                        {calculateZoneTiming.map((timing: any, index) => (
                           <div 
                             key={timing.zoneId} 
                             className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg border"
@@ -465,7 +473,7 @@ export default function Schedules() {
                                   {index + 1}
                                 </Badge>
                                 <span className="font-medium text-sm truncate">
-                                  Zone {timing.zoneNumber}: {timing.zoneName}
+                                  Zone {timing.zoneNumber || 'N/A'}: {timing.zoneName || 'Unknown'}
                                 </span>
                               </div>
                               <div className="flex items-center gap-4 text-xs text-muted-foreground">
