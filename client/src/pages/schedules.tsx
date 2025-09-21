@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import type { Zone, Schedule, ScheduleStep } from "@shared/schema";
 
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
@@ -38,12 +39,12 @@ export default function Schedules() {
     steps: [] as any[],
   });
 
-  const { data: schedules = [], isLoading: schedulesLoading } = useQuery({
+  const { data: schedules = [], isLoading: schedulesLoading } = useQuery<Schedule[]>({
     queryKey: ['/api/schedules'],
     refetchInterval: 30000,
   });
 
-  const { data: zones = [] } = useQuery({
+  const { data: zones = [] } = useQuery<Zone[]>({
     queryKey: ['/api/zones'],
   });
 
@@ -51,10 +52,10 @@ export default function Schedules() {
   useEffect(() => {
     if (isCreating && !editingSchedule && zones.length > 0 && formData.steps.length === 0) {
       const enabledZones = zones
-        .filter((zone: any) => zone.isEnabled)
-        .sort((a: any, b: any) => a.zoneNumber - b.zoneNumber);
+        .filter((zone) => zone.isEnabled)
+        .sort((a, b) => a.zoneNumber - b.zoneNumber);
       
-      const autoSteps = enabledZones.map((zone: any, index: number) => ({
+      const autoSteps = enabledZones.map((zone, index: number) => ({
         zoneId: zone.id,
         duration: formData.defaultDurationPerZone,
         stepOrder: index,
@@ -71,7 +72,17 @@ export default function Schedules() {
 
   // Calculate timing for sequential zones
   const calculateZoneTiming = useMemo(() => {
-    const timings = [];
+    const timings: Array<{
+      zoneId: string;
+      duration: number;
+      stepOrder: number;
+      zoneName: string;
+      zoneNumber: number;
+      startTime: string;
+      endTime: string;
+      startDate: Date;
+      endDate: Date;
+    }> = [];
     let currentTime = new Date(`2000-01-01T${formData.startTime}:00`);
     
     formData.steps.forEach((step, index) => {
@@ -528,7 +539,7 @@ export default function Schedules() {
               </CardContent>
             </Card>
           ) : (
-            schedules.map((schedule: any) => (
+            schedules.map((schedule) => (
               <Card key={schedule.id} data-testid={`schedule-card-${schedule.id}`}>
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between mb-4">
@@ -562,7 +573,7 @@ export default function Schedules() {
                           <div className="flex items-center justify-between">
                             <p className="text-sm font-medium text-foreground">Zone Timeline</p>
                             <Badge variant="outline" className="text-xs">
-                              {schedule.steps.reduce((total: number, step: any) => total + step.duration, 0)} min total
+                              {schedule.steps?.reduce((total: number, step: any) => total + step.duration, 0) || 0} min total
                             </Badge>
                           </div>
                           
@@ -571,7 +582,7 @@ export default function Schedules() {
                             {(() => {
                               // Calculate timing for each step
                               let currentTime = new Date(`2000-01-01T${schedule.startTime}:00`);
-                              return schedule.steps.map((step: any, index: number) => {
+                              return schedule.steps?.map((step: any, index: number) => {
                                 const startTime = new Date(currentTime);
                                 const endTime = new Date(currentTime.getTime() + step.duration * 60000);
                                 const startTimeStr = startTime.toTimeString().slice(0, 5);
