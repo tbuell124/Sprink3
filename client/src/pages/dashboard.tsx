@@ -18,6 +18,7 @@ import {
   Zap,
   Timer
 } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { Link } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -51,6 +52,9 @@ interface BackendStatusResponse {
 export default function Dashboard() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  
+  // State for custom duration inputs
+  const [customDurations, setCustomDurations] = React.useState<Record<string, string>>({});
   
   // Pi direct communication hooks
   const { data: piStatus, isLoading: piStatusLoading, error: piError } = usePiStatus({
@@ -174,6 +178,30 @@ export default function Dashboard() {
       piStopZoneMutation.mutate(zoneNumber);
     } else {
       backendStopZoneMutation.mutate(zoneNumber);
+    }
+  };
+
+  // Get custom duration for a zone, default to '10'
+  const getCustomDuration = (zoneId: string): string => {
+    return customDurations[zoneId] || '10';
+  };
+
+  // Update custom duration for a zone
+  const setCustomDuration = (zoneId: string, duration: string) => {
+    setCustomDurations(prev => ({ ...prev, [zoneId]: duration }));
+  };
+
+  // Handle custom duration start
+  const handleCustomStart = (zoneNumber: number, zoneId: string) => {
+    const duration = parseInt(getCustomDuration(zoneId));
+    if (duration > 0 && duration <= 720) { // Max 12 hours
+      handleQuickStart(zoneNumber, duration);
+    } else {
+      toast({
+        title: "Invalid Duration",
+        description: "Duration must be between 1 and 720 minutes (12 hours)",
+        variant: "destructive",
+      });
     }
   };
 
@@ -364,11 +392,42 @@ export default function Dashboard() {
                       ))}
                     </div>
                     
-                    <div className="flex space-x-3">
+                    <div className="flex flex-col space-y-3">
+                      {/* Custom duration input */}
+                      <div className="flex space-x-2">
+                        <div className="flex-1">
+                          <Input
+                            type="number"
+                            min="1"
+                            max="720"
+                            value={getCustomDuration(zone.id || zone.zoneNumber.toString())}
+                            onChange={(e) => setCustomDuration(zone.id || zone.zoneNumber.toString(), e.target.value)}
+                            className="h-12 text-center mobile-input"
+                            placeholder="10"
+                            disabled={!isEnabled || startZoneMutation.isPending || isActive}
+                            data-testid={`custom-duration-input-${zone.zoneNumber || zone.id}`}
+                            aria-label={`Custom duration in minutes for ${zone.name}`}
+                          />
+                        </div>
+                        <Button
+                          size="default"
+                          variant="default"
+                          className="btn-mobile-lg touch-feedback h-12 px-6"
+                          onClick={() => handleCustomStart(zone.zoneNumber || zone.id, zone.id || zone.zoneNumber.toString())}
+                          disabled={!isEnabled || startZoneMutation.isPending || isActive}
+                          data-testid={`start-custom-duration-${zone.zoneNumber || zone.id}`}
+                          aria-label={`Start ${zone.name} for custom duration`}
+                        >
+                          <Play className="w-4 h-4 mr-2" aria-hidden="true" />
+                          Start
+                        </Button>
+                      </div>
+                      
+                      {/* Stop button */}
                       <Button
                         size="default"
                         variant={isActive ? "destructive" : "outline"}
-                        className="flex-1 btn-mobile-lg touch-feedback h-12"
+                        className="w-full btn-mobile-lg touch-feedback h-12"
                         onClick={() => handleQuickStop(zone.zoneNumber || zone.id)}
                         disabled={!isEnabled || stopZoneMutation.isPending || !isActive}
                         data-testid={`stop-zone-${zone.zoneNumber || zone.id}`}
@@ -377,17 +436,6 @@ export default function Dashboard() {
                       >
                         <Square className="w-4 h-4 mr-2" aria-hidden="true" />
                         {isActive ? "Stop Zone" : "Quick Stop"}
-                      </Button>
-                      <Button
-                        size="default"
-                        variant="ghost"
-                        className="btn-mobile h-12 w-12 p-0"
-                        disabled={!isEnabled || startZoneMutation.isPending}
-                        data-testid={`custom-duration-${zone.zoneNumber || zone.id}`}
-                        aria-label={`Set custom duration for ${zone.name}`}
-                        title="Custom duration"
-                      >
-                        <Clock className="w-5 h-5" aria-hidden="true" />
                       </Button>
                     </div>
                     
