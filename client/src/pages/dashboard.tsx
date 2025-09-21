@@ -202,35 +202,35 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="flex-1 flex flex-col pb-20">
-      <div className="p-4 md:p-6">
+    <div className="flex-1 flex flex-col pb-20 safe-area-pb">
+      <div className="p-4 md:p-6 mobile-scroll">
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
-          <p className="text-muted-foreground">System status and zone controls</p>
+          <h1 className="text-2xl md:text-3xl font-bold text-foreground mobile-text-primary">Dashboard</h1>
+          <p className="text-muted-foreground mobile-text-secondary">System status and zone controls</p>
         </div>
         {/* Stats Cards */}
         <div 
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8"
+          className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6 mb-6 md:mb-8"
           role="region"
           aria-label="System statistics overview"
         >
           <Card 
             data-testid="stats-total-zones" 
-            className="zone-card accessible-button"
+            className="zone-card mobile-card touch-feedback-soft"
             role="article"
             aria-labelledby="total-zones-title"
             aria-describedby="total-zones-desc"
           >
-            <CardContent className="p-6">
+            <CardContent className="p-4 md:p-6">
               <div className="flex items-center">
                 <div className="flex-1">
-                  <p id="total-zones-title" className="text-sm font-medium text-muted-foreground">Total Zones</p>
-                  <p id="total-zones-desc" className="text-2xl font-bold text-foreground" aria-label={`${statsData.totalZones} zones configured`}>
+                  <p id="total-zones-title" className="text-xs md:text-sm font-medium text-muted-foreground mobile-text-caption">Total Zones</p>
+                  <p id="total-zones-desc" className="text-xl md:text-2xl font-bold text-foreground mobile-text-primary" aria-label={`${statsData.totalZones} zones configured`}>
                     {statsData.totalZones}
                   </p>
                 </div>
-                <div className="p-3 rounded-lg bg-blue-500/20 border border-blue-500/30" aria-hidden="true">
-                  <Droplets className="h-8 w-8 text-blue-400" />
+                <div className="p-2 md:p-3 rounded-lg bg-blue-500/20 border border-blue-500/30" aria-hidden="true">
+                  <Droplets className="h-6 w-6 md:h-8 md:w-8 text-blue-400" />
                 </div>
               </div>
             </CardContent>
@@ -238,61 +238,61 @@ export default function Dashboard() {
 
           <Card 
             data-testid="stats-active-zones" 
-            className={`zone-card accessible-button ${statsData.activeZones > 0 ? 'zone-active-glow' : ''}`}
+            className={`zone-card mobile-card touch-feedback-soft ${statsData.activeZones > 0 ? 'zone-active-glow' : ''}`}
             role="article"
             aria-labelledby="active-zones-title"
             aria-describedby="active-zones-desc"
             aria-live="polite"
           >
-            <CardContent className="p-6">
+            <CardContent className="p-4 md:p-6">
               <div className="flex items-center">
                 <div className="flex-1">
-                  <p id="active-zones-title" className="text-sm font-medium text-muted-foreground">Active Zones</p>
+                  <p id="active-zones-title" className="text-xs md:text-sm font-medium text-muted-foreground mobile-text-caption">Active Zones</p>
                   <p 
                     id="active-zones-desc" 
-                    className="text-2xl font-bold text-primary gradient-text"
+                    className="text-xl md:text-2xl font-bold text-primary gradient-text mobile-text-primary"
                     aria-label={`${statsData.activeZones} ${statsData.activeZones === 1 ? 'zone is' : 'zones are'} currently running`}
                   >
                     {statsData.activeZones}
                   </p>
                 </div>
                 <div 
-                  className={`p-3 rounded-lg border transition-all duration-300 ${
+                  className={`p-2 md:p-3 rounded-lg border transition-all duration-300 ${
                     statsData.activeZones > 0 
                       ? 'bg-primary/20 border-primary/50 pulse-green' 
                       : 'bg-primary/10 border-primary/20'
                   }`}
                   aria-hidden="true"
                 >
-                  <Activity className="h-8 w-8 text-primary" />
+                  <Activity className="h-6 w-6 md:h-8 md:w-8 text-primary" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card data-testid="stats-enabled-zones" className="zone-card">
-            <CardContent className="p-6">
+          <Card data-testid="stats-enabled-zones" className="zone-card mobile-card touch-feedback-soft">
+            <CardContent className="p-4 md:p-6">
               <div className="flex items-center">
                 <div className="flex-1">
-                  <p className="text-sm font-medium text-muted-foreground">Enabled Zones</p>
-                  <p className="text-2xl font-bold text-foreground">{statsData.enabledZones}</p>
+                  <p className="text-xs md:text-sm font-medium text-muted-foreground mobile-text-caption">Enabled Zones</p>
+                  <p className="text-xl md:text-2xl font-bold text-foreground mobile-text-primary">{statsData.enabledZones}</p>
                 </div>
-                <div className="p-3 rounded-lg bg-orange-500/20 border border-orange-500/30">
-                  <Zap className="h-8 w-8 text-orange-400" />
+                <div className="p-2 md:p-3 rounded-lg bg-orange-500/20 border border-orange-500/30">
+                  <Zap className="h-6 w-6 md:h-8 md:w-8 text-orange-400" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card data-testid="stats-upcoming-schedules" className="zone-card">
-            <CardContent className="p-6">
+          <Card data-testid="stats-upcoming-schedules" className="zone-card mobile-card touch-feedback-soft">
+            <CardContent className="p-4 md:p-6">
               <div className="flex items-center">
                 <div className="flex-1">
-                  <p className="text-sm font-medium text-muted-foreground">Upcoming Schedules</p>
-                  <p className="text-2xl font-bold text-foreground">{statsData.upcomingSchedules}</p>
+                  <p className="text-xs md:text-sm font-medium text-muted-foreground mobile-text-caption">Upcoming Schedules</p>
+                  <p className="text-xl md:text-2xl font-bold text-foreground mobile-text-primary">{statsData.upcomingSchedules}</p>
                 </div>
-                <div className="p-3 rounded-lg bg-purple-500/20 border border-purple-500/30">
-                  <Calendar className="h-8 w-8 text-purple-400" />
+                <div className="p-2 md:p-3 rounded-lg bg-purple-500/20 border border-purple-500/30">
+                  <Calendar className="h-6 w-6 md:h-8 md:w-8 text-purple-400" />
                 </div>
               </div>
             </CardContent>
@@ -300,17 +300,17 @@ export default function Dashboard() {
         </div>
 
         {/* Quick Zone Controls */}
-        <Card data-testid="quick-zone-controls" className="zone-card mb-8">
-          <CardHeader>
-            <CardTitle className="flex items-center">
+        <Card data-testid="quick-zone-controls" className="zone-card mobile-card mb-6 md:mb-8">
+          <CardHeader className="pb-4">
+            <CardTitle className="flex items-center mobile-text-primary">
               <div className="p-2 rounded-lg bg-orange-500/20 border border-orange-500/30 mr-3">
-                <Zap className="w-5 h-5 text-orange-400" />
+                <Zap className="w-4 h-4 md:w-5 md:h-5 text-orange-400" />
               </div>
               Quick Zone Controls
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <CardContent className="px-4 md:px-6">
+            <div className="grid grid-cols-1 gap-4 md:gap-6">
               {zones.map((zone: any) => {
                 const isActive = zone.isRunning || zone.isActive || zone.state === 'on';
                 const isEnabled = zone.isEnabled !== false && zone.enabled !== false;
@@ -318,41 +318,41 @@ export default function Dashboard() {
                 return (
                   <div 
                     key={zone.id || zone.zoneNumber} 
-                    className={`p-4 rounded-lg border transition-all duration-200 ${
+                    className={`p-4 md:p-6 rounded-lg border transition-all duration-200 mobile-card touch-feedback-soft ${
                       isActive 
                         ? 'zone-active-glow border-primary/50 bg-primary/5' 
                         : 'glass-effect border-border/50 hover:border-primary/30'
                     }`}
                   >
-                    <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center space-x-3">
-                        <div className={`w-3 h-3 rounded-full ${
+                        <div className={`w-4 h-4 rounded-full ${
                           isActive ? 'bg-primary pulse-green' : 'bg-muted-foreground/30'
                         }`} />
                         <div>
-                          <h4 className="font-medium text-foreground">{zone.name}</h4>
-                          <p className="text-xs text-muted-foreground">
+                          <h4 className="font-medium text-foreground mobile-text-primary">{zone.name}</h4>
+                          <p className="text-xs text-muted-foreground mobile-text-caption">
                             Zone {zone.zoneNumber} • GPIO {zone.gpioPin || zone.id}
                           </p>
                         </div>
                       </div>
                       <Badge 
                         variant={isActive ? "default" : "outline"}
-                        className={isActive ? "bg-primary/20 text-primary border-primary/30" : ""}
+                        className={`${isActive ? "bg-primary/20 text-primary border-primary/30" : ""} px-3 py-1`}
                         aria-label={`${zone.name} is ${isActive ? 'on' : 'off'}`}
                       >
                         {isActive ? "ON" : "OFF"}
                       </Badge>
                     </div>
                     
-                    <div className="grid grid-cols-4 gap-1 mb-2">
+                    <div className="grid grid-cols-4 gap-2 mb-4">
                       {/* Quick duration presets */}
                       {[5, 10, 15, 30].map((duration) => (
                         <Button
                           key={duration}
                           size="sm"
                           variant={isActive ? "outline" : "secondary"}
-                          className="h-7 text-xs accessible-button"
+                          className="h-10 text-sm btn-mobile touch-feedback"
                           onClick={() => handleQuickStart(zone.zoneNumber || zone.id, duration)}
                           disabled={!isEnabled || startZoneMutation.isPending || isActive}
                           data-testid={`start-zone-${zone.zoneNumber || zone.id}-${duration}min`}
@@ -364,30 +364,30 @@ export default function Dashboard() {
                       ))}
                     </div>
                     
-                    <div className="flex space-x-2">
+                    <div className="flex space-x-3">
                       <Button
-                        size="sm"
+                        size="default"
                         variant={isActive ? "destructive" : "outline"}
-                        className="flex-1 modern-button h-8 accessible-button"
+                        className="flex-1 btn-mobile-lg touch-feedback h-12"
                         onClick={() => handleQuickStop(zone.zoneNumber || zone.id)}
                         disabled={!isEnabled || stopZoneMutation.isPending || !isActive}
                         data-testid={`stop-zone-${zone.zoneNumber || zone.id}`}
                         aria-label={`Stop ${zone.name}. ${isActive ? 'Currently running. Double-tap to stop.' : 'Currently off.'} ${!isEnabled ? 'Zone disabled.' : ''}`}
                         aria-describedby={`zone-${zone.zoneNumber || zone.id}-status`}
                       >
-                        <Square className="w-3 h-3 mr-1" aria-hidden="true" />
-                        {isActive ? "Stop" : "Quick Stop"}
+                        <Square className="w-4 h-4 mr-2" aria-hidden="true" />
+                        {isActive ? "Stop Zone" : "Quick Stop"}
                       </Button>
                       <Button
-                        size="sm"
+                        size="default"
                         variant="ghost"
-                        className="px-3 accessible-button"
+                        className="btn-mobile h-12 w-12 p-0"
                         disabled={!isEnabled || startZoneMutation.isPending}
                         data-testid={`custom-duration-${zone.zoneNumber || zone.id}`}
                         aria-label={`Set custom duration for ${zone.name}`}
                         title="Custom duration"
                       >
-                        <Clock className="w-3 h-3" aria-hidden="true" />
+                        <Clock className="w-5 h-5" aria-hidden="true" />
                       </Button>
                     </div>
                     
