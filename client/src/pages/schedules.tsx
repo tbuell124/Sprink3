@@ -23,20 +23,38 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import type { Zone, Schedule, ScheduleStep } from "@shared/schema";
 
-const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as const;
+
+// Types for schedule form
+interface ScheduleStep {
+  zoneId: string;
+  duration: number;
+  stepOrder: number;
+  zoneName?: string;
+  zoneNumber?: number;
+}
+
+interface ScheduleFormData {
+  name: string;
+  startTime: string;
+  days: string[];
+  isEnabled: boolean;
+  defaultDurationPerZone: number;
+  steps: ScheduleStep[];
+}
 
 export default function Schedules() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isCreating, setIsCreating] = useState(false);
-  const [editingSchedule, setEditingSchedule] = useState<any>(null);
-  const [formData, setFormData] = useState({
+  const [editingSchedule, setEditingSchedule] = useState<Schedule | null>(null);
+  const [formData, setFormData] = useState<ScheduleFormData>({
     name: "",
     startTime: "06:00",
     days: [] as string[],
     isEnabled: true,
     defaultDurationPerZone: 30,
-    steps: [] as any[],
+    steps: [] as ScheduleStep[],
   });
 
   const { data: schedules = [], isLoading: schedulesLoading } = useQuery<Schedule[]>({
@@ -108,7 +126,7 @@ export default function Schedules() {
   }, [formData.steps]);
 
   const createScheduleMutation = useMutation({
-    mutationFn: async (scheduleData: any) => {
+    mutationFn: async (scheduleData: ScheduleFormData) => {
       return apiRequest('POST', '/api/schedules', scheduleData);
     },
     onSuccess: () => {
@@ -130,7 +148,7 @@ export default function Schedules() {
   });
 
   const updateScheduleMutation = useMutation({
-    mutationFn: async ({ id, updates }: { id: string; updates: any }) => {
+    mutationFn: async ({ id, updates }: { id: string; updates: ScheduleFormData }) => {
       return apiRequest('PUT', `/api/schedules/${id}`, updates);
     },
     onSuccess: () => {
@@ -205,7 +223,7 @@ export default function Schedules() {
     }));
   };
 
-  const updateStep = (index: number, field: string, value: any) => {
+  const updateStep = (index: number, field: keyof ScheduleStep, value: any) => {
     setFormData(prev => ({
       ...prev,
       steps: prev.steps.map((step, i) => 
@@ -228,6 +246,21 @@ export default function Schedules() {
       toast({
         title: "Error", 
         description: "Please select at least one day",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate that all steps reference enabled zones
+    const disabledSteps = formData.steps.filter(step => {
+      const zone = zones.find(z => z.id === step.zoneId);
+      return !zone || !zone.isEnabled;
+    });
+
+    if (disabledSteps.length > 0) {
+      toast({
+        title: "Error",
+        description: "Cannot create schedule with disabled zones. Please remove disabled zones from the schedule.",
         variant: "destructive",
       });
       return;

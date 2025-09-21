@@ -340,7 +340,7 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent className="px-4 md:px-6">
             <div className="grid grid-cols-1 gap-4 md:gap-6">
-              {zones.map((zone: any) => {
+              {zones.filter((zone: any) => zone.isEnabled !== false && zone.enabled !== false).map((zone: any) => {
                 const isActive = zone.isRunning || zone.isActive || zone.state === 'on';
                 const isEnabled = zone.isEnabled !== false && zone.enabled !== false;
                 
@@ -584,7 +584,7 @@ export default function Dashboard() {
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="grid grid-cols-2 gap-2">
-                  {zones.slice(0, 4).map((zone: any) => (
+                  {zones.filter((zone: any) => zone.isEnabled !== false && zone.enabled !== false).slice(0, 4).map((zone: any) => (
                     <Button
                       key={zone.id}
                       size="sm"
@@ -723,7 +723,7 @@ export default function Dashboard() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {zones.slice(0, 3).map((zone: any, index: number) => {
+                  {zones.filter((zone: any) => zone.isEnabled !== false && zone.enabled !== false).slice(0, 3).map((zone: any, index: number) => {
                     // Mock usage data for demo purposes
                     const usage = [85, 65, 45][index] || 30;
                     
