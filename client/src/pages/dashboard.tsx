@@ -269,6 +269,101 @@ export default function Dashboard() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Quick Zone Controls */}
+        <Card data-testid="quick-zone-controls" className="zone-card mb-8">
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <div className="p-2 rounded-lg bg-orange-500/20 border border-orange-500/30 mr-3">
+                <Zap className="w-5 h-5 text-orange-400" />
+              </div>
+              Quick Zone Controls
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {zones.map((zone: any) => {
+                const isActive = zone.isRunning || zone.isActive || zone.state === 'on';
+                const isEnabled = zone.isEnabled !== false && zone.enabled !== false;
+                
+                return (
+                  <div 
+                    key={zone.id || zone.zoneNumber} 
+                    className={`p-4 rounded-lg border transition-all duration-200 ${
+                      isActive 
+                        ? 'zone-active-glow border-primary/50 bg-primary/5' 
+                        : 'glass-effect border-border/50 hover:border-primary/30'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center space-x-3">
+                        <div className={`w-3 h-3 rounded-full ${
+                          isActive ? 'bg-primary pulse-green' : 'bg-muted-foreground/30'
+                        }`} />
+                        <div>
+                          <h4 className="font-medium text-foreground">{zone.name}</h4>
+                          <p className="text-xs text-muted-foreground">
+                            Zone {zone.zoneNumber} • GPIO {zone.gpioPin || zone.id}
+                          </p>
+                        </div>
+                      </div>
+                      <Badge 
+                        variant={isActive ? "default" : "outline"}
+                        className={isActive ? "bg-primary/20 text-primary border-primary/30" : ""}
+                      >
+                        {isActive ? "ON" : "OFF"}
+                      </Badge>
+                    </div>
+                    
+                    <div className="flex space-x-2">
+                      <Button
+                        size="sm"
+                        variant={isActive ? "outline" : "default"}
+                        className="flex-1 modern-button h-8"
+                        onClick={() => handleQuickStart(zone.zoneNumber || zone.id, 30)}
+                        disabled={!isEnabled || startZoneMutation.isPending || isActive}
+                        data-testid={`start-zone-${zone.zoneNumber || zone.id}`}
+                      >
+                        <Play className="w-3 h-3 mr-1" />
+                        30min
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant={isActive ? "destructive" : "outline"}
+                        className="flex-1 modern-button h-8"
+                        onClick={() => handleQuickStop(zone.zoneNumber || zone.id)}
+                        disabled={!isEnabled || stopZoneMutation.isPending || !isActive}
+                        data-testid={`stop-zone-${zone.zoneNumber || zone.id}`}
+                      >
+                        <Square className="w-3 h-3 mr-1" />
+                        Stop
+                      </Button>
+                    </div>
+                    
+                    {!isEnabled && (
+                      <p className="text-xs text-muted-foreground mt-2 text-center">
+                        Zone disabled
+                      </p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            
+            {zones.length === 0 && (
+              <div className="text-center py-8 text-muted-foreground">
+                <div className="p-4 rounded-full bg-muted/50 w-fit mx-auto mb-4">
+                  <Zap className="w-12 h-12 opacity-50" />
+                </div>
+                <p className="font-medium">No zones configured</p>
+                <p className="text-sm">Add zones in Settings to get started</p>
+                <Link href="/settings">
+                  <Button variant="link" className="mt-2">Go to Settings</Button>
+                </Link>
+              </div>
+            )}
+          </CardContent>
+        </Card>
         
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Active Zones & Upcoming Schedules */}
