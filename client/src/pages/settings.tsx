@@ -25,6 +25,14 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useState } from "react";
+import { 
+  usePiConnectionTest, 
+  usePiConfig, 
+  useSavePiConfig, 
+  usePiDiagnostics,
+  usePiZones 
+} from "@/hooks/use-pi-api";
+import { PiConnectionError, getNetworkTroubleshootingTips } from "@/lib/pi-api";
 
 export default function Settings() {
   const { toast } = useToast();
@@ -32,12 +40,25 @@ export default function Settings() {
   const [editingZone, setEditingZone] = useState<any>(null);
   const [testDuration, setTestDuration] = useState<number>(5);
   const [piIpAddress, setPiIpAddress] = useState<string>(localStorage.getItem('piIpAddress') || '192.168.1.100');
+  const [piPort, setPiPort] = useState<number>(parseInt(localStorage.getItem('piPort') || '8000'));
+  const [piApiToken, setPiApiToken] = useState<string>(localStorage.getItem('piApiToken') || '');
+  const [piUseHttps, setPiUseHttps] = useState<boolean>(localStorage.getItem('piUseHttps') === 'true');
   const [connectionStatus, setConnectionStatus] = useState<'idle' | 'testing' | 'success' | 'error'>('idle');
+  const [showTroubleshooting, setShowTroubleshooting] = useState<boolean>(false);
+  
+  // Pi integration hooks
+  const { config: piConfig, updateConfig: updatePiConfig } = usePiConfig();
+  const connectionTestMutation = usePiConnectionTest();
+  const savePiConfigMutation = useSavePiConfig();
+  const piDiagnostics = usePiDiagnostics();
 
   const { data: zones = [], isLoading } = useQuery({
     queryKey: ['/api/zones'],
     refetchInterval: 10000, // Refresh every 10 seconds
   });
+  
+  // Ensure zones is properly typed
+  const typedZones = zones as any[];
 
   const { data: systemStatus } = useQuery({
     queryKey: ['/api/status'],
@@ -108,49 +129,45 @@ export default function Settings() {
     },
   });
 
-  const testConnectionMutation = useMutation({
-    mutationFn: async (ipAddress: string) => {
-      const response = await fetch(`http://${ipAddress}/health`);
-      if (!response.ok) throw new Error('Connection failed');
-      return response.json();
-    },
-    onSuccess: () => {
-      setConnectionStatus('success');
-      toast({
-        title: "Connection Success",
-        description: "Successfully connected to Raspberry Pi",
-      });
-    },
-    onError: () => {
-      setConnectionStatus('error');
-      toast({
-        title: "Connection Failed",
-        description: "Could not connect to Raspberry Pi. Check IP address and network.",
-        variant: "destructive",
-      });
-    },
-  });
+  // Remove old testConnectionMutation - now using usePiConnectionTest hook
 
-  const savePiIpMutation = useMutation({
-    mutationFn: async (ipAddress: string) => {
-      localStorage.setItem('piIpAddress', ipAddress);
-      return ipAddress;
-    },
-    onSuccess: () => {
-      toast({
-        title: "IP Address Saved",
-        description: "Raspberry Pi IP address has been saved",
-      });
-    },
-  });
+  // Remove old savePiIpMutation - now using useSavePiConfig hook
 
-  const handleSavePiIp = () => {
-    savePiIpMutation.mutate(piIpAddress);
+  const handleSavePiConfig = () => {
+    const newConfig = {
+      ipAddress: piIpAddress,
+      port: piPort,
+      apiToken: piApiToken,
+      useHttps: piUseHttps,
+    };
+    savePiConfigMutation.mutate(newConfig);
+    updatePiConfig(newConfig);
   };
 
   const handleTestConnection = () => {
     setConnectionStatus('testing');
-    testConnectionMutation.mutate(piIpAddress);
+    setShowTroubleshooting(false);
+    
+    // Update config before testing
+    updatePiConfig({
+      ipAddress: piIpAddress,
+      port: piPort,
+      apiToken: piApiToken,
+      useHttps: piUseHttps,
+    });
+    
+    connectionTestMutation.mutate(undefined, {
+      onSuccess: (result) => {
+        setConnectionStatus(result.success ? 'success' : 'error');
+        if (!result.success) {
+          setShowTroubleshooting(true);
+        }
+      },
+      onError: (error) => {
+        setConnectionStatus('error');
+        setShowTroubleshooting(true);
+      },
+    });
   };
 
   const handleUpdateZone = (zoneId: string, updates: any) => {
@@ -193,9 +210,9 @@ export default function Settings() {
     );
   }
 
-  const activeZones = zones.filter((zone: any) => zone.isRunning);
-  const enabledZones = zones.filter((zone: any) => zone.isEnabled);
-  const disabledZones = zones.filter((zone: any) => !zone.isEnabled);
+  const activeZones = typedZones.filter((zone: any) => zone.isRunning);
+  const enabledZones = typedZones.filter((zone: any) => zone.isEnabled);
+  const disabledZones = typedZones.filter((zone: any) => !zone.isEnabled);
 
   return (
     <div className="flex-1 flex flex-col pb-20">
@@ -214,32 +231,69 @@ export default function Settings() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div>
-              <Label htmlFor="pi-ip-address">Raspberry Pi IP Address</Label>
-              <div className="flex space-x-2 mt-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="pi-ip-address">IP Address</Label>
                 <Input
                   id="pi-ip-address"
                   type="text"
                   placeholder="192.168.1.100"
                   value={piIpAddress}
                   onChange={(e) => setPiIpAddress(e.target.value)}
-                  className="flex-1"
                   data-testid="input-pi-ip"
                 />
+              </div>
+              
+              <div>
+                <Label htmlFor="pi-port">Port</Label>
+                <Input
+                  id="pi-port"
+                  type="number"
+                  placeholder="8000"
+                  value={piPort}
+                  onChange={(e) => setPiPort(parseInt(e.target.value) || 8000)}
+                  data-testid="input-pi-port"
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="pi-api-token">API Token (Optional)</Label>
+                <Input
+                  id="pi-api-token"
+                  type="password"
+                  placeholder="Enter API token if required"
+                  value={piApiToken}
+                  onChange={(e) => setPiApiToken(e.target.value)}
+                  data-testid="input-pi-token"
+                />
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="pi-use-https"
+                  checked={piUseHttps}
+                  onCheckedChange={setPiUseHttps}
+                  data-testid="switch-pi-https"
+                />
+                <Label htmlFor="pi-use-https">Use HTTPS</Label>
+              </div>
+            </div>
+            
+            <div className="flex space-x-2">
                 <Button
-                  onClick={handleSavePiIp}
-                  disabled={savePiIpMutation.isPending}
+                  onClick={handleSavePiConfig}
+                  disabled={savePiConfigMutation.isPending}
                   variant="outline"
-                  data-testid="button-save-ip"
+                  data-testid="button-save-config"
                 >
-                  {savePiIpMutation.isPending ? "Saving..." : "Save"}
+                  {savePiConfigMutation.isPending ? "Saving..." : "Save"}
                 </Button>
                 <Button
                   onClick={handleTestConnection}
-                  disabled={testConnectionMutation.isPending || !piIpAddress}
+                  disabled={connectionTestMutation.isPending || !piIpAddress}
                   data-testid="button-test-connection"
                 >
-                  {testConnectionMutation.isPending ? (
+                  {connectionTestMutation.isPending ? (
                     <Loader className="w-4 h-4 mr-2 animate-spin" />
                   ) : connectionStatus === 'success' ? (
                     <Check className="w-4 h-4 mr-2" />
@@ -251,20 +305,43 @@ export default function Settings() {
                   Test
                 </Button>
               </div>
-            </div>
             
             <div className="p-3 bg-muted/50 rounded-lg">
-              <p className="text-sm text-muted-foreground">
-                <strong>Current IP:</strong> {piIpAddress}<br />
-                <strong>Status:</strong> 
-                <span className={`ml-1 ${connectionStatus === 'success' ? 'text-green-600' : connectionStatus === 'error' ? 'text-red-600' : 'text-muted-foreground'}`}>
-                  {connectionStatus === 'success' ? 'Connected' : connectionStatus === 'error' ? 'Connection Failed' : connectionStatus === 'testing' ? 'Testing...' : 'Not Tested'}
-                </span>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                <div>
+                  <p className="text-muted-foreground">
+                    <strong>Connection URL:</strong> {piUseHttps ? 'https' : 'http'}://{piIpAddress}:{piPort}<br />
+                    <strong>Status:</strong> 
+                    <span className={`ml-1 ${connectionStatus === 'success' ? 'text-green-600' : connectionStatus === 'error' ? 'text-red-600' : 'text-muted-foreground'}`}>
+                      {connectionStatus === 'success' ? 'Connected' : connectionStatus === 'error' ? 'Connection Failed' : connectionStatus === 'testing' ? 'Testing...' : 'Not Tested'}
+                    </span>
+                  </p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">
+                    <strong>Pi Online:</strong> {piDiagnostics.isOnline ? '✅ Yes' : '❌ No'}<br />
+                    <strong>Version:</strong> {piDiagnostics.version || 'Unknown'}
+                  </p>
+                </div>
+              </div>
+              
+              <p className="text-xs text-muted-foreground mt-3">
+                Configure your Raspberry Pi connection. Default port is 8000. 
+                API token is only required if your Pi has authentication enabled.
               </p>
-              <p className="text-xs text-muted-foreground mt-2">
-                Enter the local IP address of your Raspberry Pi running the sprinkler control service.
-                Example: 192.168.1.100 or 10.0.0.50
-              </p>
+              
+              {showTroubleshooting && connectionStatus === 'error' && (
+                <div className="mt-3 p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
+                  <h4 className="text-sm font-semibold text-destructive mb-2">Connection Troubleshooting:</h4>
+                  <ul className="text-xs text-muted-foreground space-y-1">
+                    <li>• Check that the Pi is powered on and connected to your network</li>
+                    <li>• Verify the IP address is correct (try pinging it)</li>
+                    <li>• Make sure both your browser and Pi are on the same network</li>
+                    <li>• Check if the Pi's firewall is blocking the port</li>
+                    <li>• Try accessing directly: {piUseHttps ? 'https' : 'http'}://{piIpAddress}:{piPort}/status</li>
+                  </ul>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -279,7 +356,7 @@ export default function Settings() {
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Total Zones</p>
-                  <p className="text-lg font-semibold">{zones.length}</p>
+                  <p className="text-lg font-semibold">{typedZones.length}</p>
                 </div>
               </div>
               
@@ -344,7 +421,7 @@ export default function Settings() {
 
           <TabsContent value="all">
             <ZoneGrid 
-              zones={zones} 
+              zones={typedZones} 
               onEdit={setEditingZone}
               onTest={handleTestZone}
               onStop={handleStopZone}

@@ -20,22 +20,57 @@ import {
 import { Link } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { 
+  usePiStatus, 
+  usePiZones, 
+  usePiStartZone, 
+  usePiStopZone, 
+  usePiDiagnostics 
+} from "@/hooks/use-pi-api";
 
 export default function Dashboard() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
-  const { data: systemStatus, isLoading: statusLoading } = useQuery({
+  // Pi direct communication hooks
+  const { data: piStatus, isLoading: piStatusLoading, error: piError } = usePiStatus({
+    enabled: true,
+    refetchInterval: 5000,
+    fallbackToOffline: true,
+  });
+  
+  const { data: piZones = [], isLoading: piZonesLoading, piRawData } = usePiZones({
+    enabled: true,
+    refetchInterval: 10000,
+  });
+  
+  const piDiagnostics = usePiDiagnostics();
+  
+  // Fallback to backend API when Pi is not available
+  const { data: backendStatus, isLoading: backendStatusLoading } = useQuery({
     queryKey: ['/api/status'],
-    refetchInterval: 5000, // Refresh every 5 seconds for real-time updates
+    refetchInterval: 5000,
+    enabled: !piDiagnostics.isOnline, // Only use backend when Pi is offline
   });
 
-  const { data: zones = [], isLoading: zonesLoading } = useQuery({
+  const { data: backendZones = [], isLoading: backendZonesLoading } = useQuery({
     queryKey: ['/api/zones'],
-    refetchInterval: 10000, // Refresh every 10 seconds
+    refetchInterval: 10000,
+    enabled: !piDiagnostics.isOnline, // Only use backend when Pi is offline
   });
+  
+  // Use Pi data when available, otherwise fallback to backend
+  const systemStatus = piDiagnostics.isOnline ? piStatus : backendStatus;
+  const zones = piDiagnostics.isOnline ? piZones : (backendZones as any[]);
+  const isLoading = piDiagnostics.isOnline ? 
+    (piStatusLoading || piZonesLoading) : 
+    (backendStatusLoading || backendZonesLoading);
 
-  const startZoneMutation = useMutation({
+  // Pi zone control hooks
+  const piStartZoneMutation = usePiStartZone();
+  
+  // Fallback backend zone control
+  const backendStartZoneMutation = useMutation({
     mutationFn: async ({ zone, duration }: { zone: number; duration: number }) => {
       return apiRequest('POST', `/zone/on/${zone}`, { duration });
     },
@@ -56,7 +91,11 @@ export default function Dashboard() {
     },
   });
 
-  const stopZoneMutation = useMutation({
+  // Pi zone control hooks  
+  const piStopZoneMutation = usePiStopZone();
+  
+  // Fallback backend zone control
+  const backendStopZoneMutation = useMutation({
     mutationFn: async (zone: number) => {
       return apiRequest('POST', `/zone/off/${zone}`);
     },
@@ -80,24 +119,36 @@ export default function Dashboard() {
   // Calculate stats from system data
   const statsData = {
     totalZones: zones.length,
-    activeZones: zones.filter((zone: any) => zone.isRunning).length,
+    activeZones: zones.filter((zone: any) => zone.isRunning || zone.isActive).length,
     enabledZones: zones.filter((zone: any) => zone.isEnabled).length,
-    upcomingSchedules: systemStatus?.upcomingSchedules?.length || 0,
+    upcomingSchedules: piDiagnostics.isOnline ? 
+      (piStatus?.schedules?.length || 0) : 
+      (systemStatus?.upcomingSchedules?.length || 0),
   };
 
   // Get active zones for the status display
-  const activeZones = zones.filter((zone: any) => zone.isRunning);
-  const upcomingSchedules = systemStatus?.upcomingSchedules?.slice(0, 3) || [];
+  const activeZones = zones.filter((zone: any) => zone.isRunning || zone.isActive);
+  const upcomingSchedules = piDiagnostics.isOnline ? 
+    (piStatus?.schedules?.slice(0, 3) || []) : 
+    (systemStatus?.upcomingSchedules?.slice(0, 3) || []);
 
   const handleQuickStart = (zoneNumber: number, duration: number = 30) => {
-    startZoneMutation.mutate({ zone: zoneNumber, duration });
+    if (piDiagnostics.isOnline) {
+      piStartZoneMutation.mutate({ zone: zoneNumber, duration });
+    } else {
+      backendStartZoneMutation.mutate({ zone: zoneNumber, duration });
+    }
   };
 
   const handleQuickStop = (zoneNumber: number) => {
-    stopZoneMutation.mutate(zoneNumber);
+    if (piDiagnostics.isOnline) {
+      piStopZoneMutation.mutate(zoneNumber);
+    } else {
+      backendStopZoneMutation.mutate(zoneNumber);
+    }
   };
 
-  if (statusLoading || zonesLoading) {
+  if (isLoading) {
     return (
       <div className="flex-1 flex flex-col pb-20">
         <div className="p-4 md:p-6">
