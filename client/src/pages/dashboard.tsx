@@ -156,14 +156,14 @@ export default function Dashboard() {
     activeZones: zones.filter((zone: any) => zone.isRunning || zone.isActive).length,
     enabledZones: zones.filter((zone: any) => zone.isEnabled).length,
     upcomingSchedules: piDiagnostics.isOnline ? 
-      (piStatus?.schedules?.length || 0) : 
+      0 : 
       (backendStatus?.upcomingSchedules?.length || 0),
   };
 
   // Get active zones for the status display
   const activeZones = zones.filter((zone: any) => zone.isRunning || zone.isActive);
   const upcomingSchedules = piDiagnostics.isOnline ? 
-    (piStatus?.schedules?.slice(0, 3) || []) : 
+    [] : 
     (backendStatus?.upcomingSchedules?.slice(0, 3) || []);
 
   const handleQuickStart = (zoneNumber: number, duration: number = 30) => {
@@ -691,39 +691,39 @@ export default function Dashboard() {
 
                   {/* Rain Delay Status */}
                   <div className={`flex items-center justify-between p-4 glass-effect rounded-lg border transition-all duration-200 ${
-                    (piDiagnostics.isOnline ? piStatus?.rain?.is_active : backendStatus?.rainDelay?.active)
+                    (piDiagnostics.isOnline ? false : backendStatus?.rainDelay?.active)
                       ? 'border-blue-500/30 bg-blue-500/5'
                       : 'border-border/50 bg-muted/20'
                   }`}>
                     <div className="flex items-center space-x-3">
                       <div className={`w-10 h-10 rounded-lg flex items-center justify-center border ${
-                        (piDiagnostics.isOnline ? piStatus?.rain?.is_active : backendStatus?.rainDelay?.active) 
+                        (piDiagnostics.isOnline ? false : backendStatus?.rainDelay?.active) 
                           ? "bg-blue-500/20 border-blue-500/30" 
                           : "bg-muted/30 border-border/50"
                       }`}>
                         <CloudRain className={`w-5 h-5 ${
-                          (piDiagnostics.isOnline ? piStatus?.rain?.is_active : backendStatus?.rainDelay?.active) ? "text-blue-400" : "text-muted-foreground"
+                          (piDiagnostics.isOnline ? false : backendStatus?.rainDelay?.active) ? "text-blue-400" : "text-muted-foreground"
                         }`} />
                       </div>
                       <div>
                         <p className="text-sm font-medium text-foreground">Rain Delay</p>
                         <p className="text-xs text-muted-foreground">
-                          {(piDiagnostics.isOnline ? piStatus?.rain?.is_active : backendStatus?.rainDelay?.active) ? "Active" : "Inactive"}
+                          {(piDiagnostics.isOnline ? false : backendStatus?.rainDelay?.active) ? "Active" : "Inactive"}
                         </p>
                       </div>
                     </div>
                     <Badge 
-                      variant={(piDiagnostics.isOnline ? piStatus?.rain?.is_active : backendStatus?.rainDelay?.active) ? "secondary" : "outline"}
-                      className={(piDiagnostics.isOnline ? piStatus?.rain?.is_active : backendStatus?.rainDelay?.active) ? "bg-blue-500/20 text-blue-400 border-blue-500/30" : ""}
+                      variant={(piDiagnostics.isOnline ? false : backendStatus?.rainDelay?.active) ? "secondary" : "outline"}
+                      className={(piDiagnostics.isOnline ? false : backendStatus?.rainDelay?.active) ? "bg-blue-500/20 text-blue-400 border-blue-500/30" : ""}
                     >
-                      {(piDiagnostics.isOnline ? piStatus?.rain?.is_active : backendStatus?.rainDelay?.active) ? "ON" : "OFF"}
+                      {(piDiagnostics.isOnline ? false : backendStatus?.rainDelay?.active) ? "ON" : "OFF"}
                     </Badge>
                   </div>
 
                   {/* Last Updated */}
                   <div className="text-xs text-muted-foreground">
-                    <p>Last updated: {(piDiagnostics.isOnline ? piStatus?.last_updated : backendStatus?.lastUpdated) ? 
-                      new Date(piDiagnostics.isOnline ? piStatus!.last_updated : backendStatus!.lastUpdated).toLocaleTimeString() : 'Unknown'}</p>
+                    <p>Last updated: {(piDiagnostics.isOnline ? null : backendStatus?.lastUpdated) ? 
+                      new Date(backendStatus!.lastUpdated).toLocaleTimeString() : 'Unknown'}</p>
                   </div>
                 </div>
               </CardContent>
