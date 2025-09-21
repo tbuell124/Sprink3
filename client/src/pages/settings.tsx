@@ -47,7 +47,7 @@ export default function Settings() {
   const queryClient = useQueryClient();
   const [editingZone, setEditingZone] = useState<ZoneWithStatus | null>(null);
   const [testDuration, setTestDuration] = useState<number>(5);
-  const [piIpAddress, setPiIpAddress] = useState<string>(localStorage.getItem('piIpAddress') || '192.168.1.100');
+  const [piIpAddress, setPiIpAddress] = useState<string>(localStorage.getItem('piIpAddress') || '192.168.1.24');
   const [piPort, setPiPort] = useState<number>(parseInt(localStorage.getItem('piPort') || '8000'));
   const [piApiToken, setPiApiToken] = useState<string>(localStorage.getItem('piApiToken') || '');
   const [piUseHttps, setPiUseHttps] = useState<boolean>(localStorage.getItem('piUseHttps') === 'true');
@@ -245,7 +245,7 @@ export default function Settings() {
                 <Input
                   id="pi-ip-address"
                   type="text"
-                  placeholder="192.168.1.100"
+                  placeholder="192.168.1.24"
                   value={piIpAddress}
                   onChange={(e) => setPiIpAddress(e.target.value)}
                   data-testid="input-pi-ip"
@@ -328,7 +328,7 @@ export default function Settings() {
                 <div>
                   <p className="text-muted-foreground">
                     <strong>Pi Online:</strong> {piDiagnostics.isOnline ? '✅ Yes' : '❌ No'}<br />
-                    <strong>Version:</strong> {piDiagnostics.version || 'Unknown'}
+                    <strong>Backend:</strong> {piDiagnostics.backend || 'Unknown'}
                   </p>
                 </div>
               </div>

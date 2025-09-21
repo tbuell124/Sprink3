@@ -399,12 +399,12 @@ export function usePiZones(options?: { enabled?: boolean; refetchInterval?: numb
 
   // Transform Pi pin data to zone format that matches the backend API
   const zones = useMemo(() => {
-    if (!piStatusQuery.data?.pins || !piPinsQuery.data?.pins) return [];
+    if (!piStatusQuery.data?.pins || !piPinsQuery.data || !Array.isArray(piPinsQuery.data)) return [];
 
     // Create a map of pin states for quick lookup
     const pinStateMap = new Map();
-    piPinsQuery.data.pins.forEach(pin => {
-      pinStateMap.set(pin.pin, pin.state === 'on');
+    piPinsQuery.data.forEach((pin: any) => {
+      pinStateMap.set(pin.id, pin.state === 'on');
     });
 
     return piStatusQuery.data.pins.map((pinNumber, index) => ({

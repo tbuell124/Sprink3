@@ -11,9 +11,10 @@ export interface PiConnectionConfig {
 }
 
 export interface PiPin {
-  pin: number;
+  id: number;
+  name: string;
+  enabled: boolean;
   state: 'on' | 'off';
-  name?: string;
 }
 
 export interface PiSystemStatus {
@@ -25,9 +26,7 @@ export interface PiSystemStatus {
   pigpio_connected: boolean;
 }
 
-export interface PiPinsResponse {
-  pins: PiPin[];
-}
+export type PiPinsResponse = PiPin[];
 
 export interface PiZoneControlRequest {
   minutes: number;
@@ -101,7 +100,9 @@ export class PiApiClient {
    * Get pins status from Pi
    */
   async getPins(): Promise<PiPinsResponse> {
-    return this.makeRequest('/api/pins', 'GET');
+    const response = await this.makeRequest('/api/pins', 'GET');
+    // API returns direct array of pins, not wrapped in an object
+    return Array.isArray(response) ? response : [];
   }
 
   /**
@@ -235,7 +236,7 @@ export class PiApiClient {
         const errorMessage = error.message.toLowerCase();
         
         // In demo mode, suppress verbose error messages for expected failures
-        const isDemoMode = this.config.ipAddress === '192.168.1.100' && !this.config.apiToken;
+        const isDemoMode = (this.config.ipAddress === '192.168.1.100') && !this.config.apiToken;
         
         if (errorMessage.includes('cors')) {
           throw new PiConnectionError(
@@ -247,7 +248,7 @@ export class PiApiClient {
 
         if (errorMessage.includes('mixed content') || errorMessage.includes('https')) {
           throw new PiConnectionError(
-            isDemoMode ? 'Pi not available (demo mode)' : 'Mixed content blocked. You\'re accessing this page over HTTPS but trying to connect to HTTP Pi. See troubleshooting tips below.',
+            isDemoMode ? 'Pi not available (demo mode)' : `Mixed content blocked: This page is served over HTTPS but your Pi at ${this.config.ipAddress}:${this.config.port} uses HTTP. Click the shield icon in your browser address bar and allow insecure content, or access this page over HTTP instead.`,
             'mixed_content',
             error
           );
@@ -309,7 +310,7 @@ export function createPiApiClient(config: PiConnectionConfig): PiApiClient {
  * Get Pi configuration from localStorage
  */
 export function getPiConfigFromStorage(): PiConnectionConfig {
-  const ipAddress = localStorage.getItem('piIpAddress') || '192.168.1.100';
+  const ipAddress = localStorage.getItem('piIpAddress') || '192.168.1.24';
   const port = parseInt(localStorage.getItem('piPort') || '8000');
   const useHttps = localStorage.getItem('piUseHttps') === 'true';
   const apiToken = localStorage.getItem('piApiToken') || '';
@@ -322,7 +323,7 @@ export function getPiConfigFromStorage(): PiConnectionConfig {
  */
 export function isDemoMode(): boolean {
   const config = getPiConfigFromStorage();
-  return config.ipAddress === '192.168.1.100' && !config.apiToken;
+  return (config.ipAddress === '192.168.1.100') && !config.apiToken;
 }
 
 /**
