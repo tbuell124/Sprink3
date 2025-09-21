@@ -316,7 +316,7 @@ export function createPiApiClient(config: PiConnectionConfig): PiApiClient {
  * Get Pi configuration from localStorage
  */
 export function getPiConfigFromStorage(): PiConnectionConfig {
-  const ipAddress = localStorage.getItem('piIpAddress') || '192.168.1.24';
+  const ipAddress = localStorage.getItem('piIpAddress') || 'localhost';
   const port = parseInt(localStorage.getItem('piPort') || '8000');
   const useHttps = localStorage.getItem('piUseHttps') === 'true';
   const apiToken = localStorage.getItem('piApiToken') || '';
