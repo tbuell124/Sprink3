@@ -11,12 +11,34 @@ import {
 } from "@shared/schema";
 import { z } from "zod";
 
-// Mock authentication middleware (replace with real auth in production)
-const requireAuth = (req: Request, res: Response, next: any) => {
-  const userId = req.headers['x-user-id'] as string;
+// Development authentication middleware (allows demo mode)
+const requireAuth = async (req: Request, res: Response, next: any) => {
+  let userId = req.headers['x-user-id'] as string;
+  
+  // Development/demo mode: If no user ID provided, use the default admin user
   if (!userId) {
-    return res.status(401).json({ error: 'Authentication required' });
+    try {
+      const adminUser = await storage.getUserByUsername('admin');
+      if (adminUser) {
+        userId = adminUser.id;
+      } else {
+        // If no admin user exists, create one
+        const newAdmin = await storage.createUser({
+          username: "admin",
+          email: "admin@sprinkler.com",
+          password: "admin123", 
+          firstName: "Demo",
+          lastName: "User",
+          role: "admin",
+        });
+        userId = newAdmin.id;
+      }
+    } catch (error) {
+      console.error("Failed to get/create demo user:", error);
+      return res.status(500).json({ error: 'Server error during authentication' });
+    }
   }
+  
   req.userId = userId;
   next();
 };
@@ -364,7 +386,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         startTime: scheduleData.startTime || "06:00",
         days: scheduleData.days || ["Mon", "Wed", "Fri"],
         isEnabled: scheduleData.isEnabled ?? true,
-        lastRun: null,
       });
 
       // Create schedule steps if provided

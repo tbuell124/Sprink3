@@ -27,6 +27,25 @@ import {
   usePiStopZone, 
   usePiDiagnostics 
 } from "@/hooks/use-pi-api";
+import type { SystemStatus } from "@shared/schema";
+
+// Define types for backend API responses
+interface BackendStatusResponse {
+  version: string;
+  lastUpdated: string;
+  connectivity: string;
+  zones: any[];
+  activeRuns: number;
+  upcomingSchedules: any[];
+  rainDelay: {
+    active: boolean;
+    endsAt: string | null;
+  };
+  piBackend: {
+    url: string | null;
+    connected: boolean;
+  };
+}
 
 export default function Dashboard() {
   const { toast } = useToast();
@@ -47,7 +66,7 @@ export default function Dashboard() {
   const piDiagnostics = usePiDiagnostics();
   
   // Fallback to backend API when Pi is not available
-  const { data: backendStatus, isLoading: backendStatusLoading } = useQuery({
+  const { data: backendStatus, isLoading: backendStatusLoading } = useQuery<BackendStatusResponse>({
     queryKey: ['/api/status'],
     refetchInterval: 5000,
     enabled: !piDiagnostics.isOnline, // Only use backend when Pi is offline
@@ -116,6 +135,15 @@ export default function Dashboard() {
     },
   });
 
+  // Combined mutation states for UI feedback
+  const startZoneMutation = {
+    isPending: piStartZoneMutation.isPending || backendStartZoneMutation.isPending,
+  };
+  
+  const stopZoneMutation = {
+    isPending: piStopZoneMutation.isPending || backendStopZoneMutation.isPending,
+  };
+
   // Calculate stats from system data
   const statsData = {
     totalZones: zones.length,
@@ -123,14 +151,14 @@ export default function Dashboard() {
     enabledZones: zones.filter((zone: any) => zone.isEnabled).length,
     upcomingSchedules: piDiagnostics.isOnline ? 
       (piStatus?.schedules?.length || 0) : 
-      (systemStatus?.upcomingSchedules?.length || 0),
+      (backendStatus?.upcomingSchedules?.length || 0),
   };
 
   // Get active zones for the status display
   const activeZones = zones.filter((zone: any) => zone.isRunning || zone.isActive);
   const upcomingSchedules = piDiagnostics.isOnline ? 
     (piStatus?.schedules?.slice(0, 3) || []) : 
-    (systemStatus?.upcomingSchedules?.slice(0, 3) || []);
+    (backendStatus?.upcomingSchedules?.slice(0, 3) || []);
 
   const handleQuickStart = (zoneNumber: number, duration: number = 30) => {
     if (piDiagnostics.isOnline) {
@@ -409,11 +437,11 @@ export default function Dashboard() {
               <CardHeader>
                 <CardTitle className="flex items-center">
                   <div className={`p-2 rounded-lg border mr-3 ${
-                    systemStatus?.connectivity === "online"
+                    (piDiagnostics.isOnline ? piDiagnostics.isOnline : backendStatus?.connectivity === "online")
                       ? 'bg-primary/20 border-primary/30'
                       : 'bg-red-500/20 border-red-500/30'
                   }`}>
-                    {systemStatus?.connectivity === "online" ? (
+                    {(piDiagnostics.isOnline ? piDiagnostics.isOnline : backendStatus?.connectivity === "online") ? (
                       <Wifi className="w-5 h-5 text-primary" />
                     ) : (
                       <WifiOff className="w-5 h-5 text-red-400" />
@@ -426,17 +454,17 @@ export default function Dashboard() {
                 <div className="space-y-4">
                   {/* Connectivity Status */}
                   <div className={`flex items-center justify-between p-4 glass-effect rounded-lg border transition-all duration-200 ${
-                    systemStatus?.connectivity === "online" 
+                    (piDiagnostics.isOnline ? piDiagnostics.isOnline : backendStatus?.connectivity === "online") 
                       ? 'border-primary/30 bg-primary/5'
                       : 'border-red-500/30 bg-red-500/5'
                   }`}>
                     <div className="flex items-center space-x-3">
                       <div className={`w-10 h-10 rounded-lg flex items-center justify-center border ${
-                        systemStatus?.connectivity === "online" 
+                        (piDiagnostics.isOnline ? piDiagnostics.isOnline : backendStatus?.connectivity === "online") 
                           ? "bg-primary/20 border-primary/30" 
                           : "bg-red-500/20 border-red-500/30"
                       }`}>
-                        {systemStatus?.connectivity === "online" ? (
+                        {(piDiagnostics.isOnline ? piDiagnostics.isOnline : backendStatus?.connectivity === "online") ? (
                           <Wifi className="text-primary w-5 h-5" />
                         ) : (
                           <WifiOff className="text-red-400 w-5 h-5" />
@@ -445,50 +473,50 @@ export default function Dashboard() {
                       <div>
                         <p className="text-sm font-medium text-foreground">Raspberry Pi</p>
                         <p className="text-xs text-muted-foreground capitalize">
-                          {systemStatus?.connectivity || "Unknown"}
+                          {piDiagnostics.isOnline ? "online" : (backendStatus?.connectivity || "Unknown")}
                         </p>
                       </div>
                     </div>
                     <span className={`w-3 h-3 rounded-full pulse-green ${
-                      systemStatus?.connectivity === "online" ? "bg-primary" : "bg-red-500"
+                      (piDiagnostics.isOnline ? piDiagnostics.isOnline : backendStatus?.connectivity === "online") ? "bg-primary" : "bg-red-500"
                     }`} data-testid="connectivity-indicator"></span>
                   </div>
 
                   {/* Rain Delay Status */}
                   <div className={`flex items-center justify-between p-4 glass-effect rounded-lg border transition-all duration-200 ${
-                    systemStatus?.rainDelay?.active
+                    (piDiagnostics.isOnline ? piStatus?.rain?.is_active : backendStatus?.rainDelay?.active)
                       ? 'border-blue-500/30 bg-blue-500/5'
                       : 'border-border/50 bg-muted/20'
                   }`}>
                     <div className="flex items-center space-x-3">
                       <div className={`w-10 h-10 rounded-lg flex items-center justify-center border ${
-                        systemStatus?.rainDelay?.active 
+                        (piDiagnostics.isOnline ? piStatus?.rain?.is_active : backendStatus?.rainDelay?.active) 
                           ? "bg-blue-500/20 border-blue-500/30" 
                           : "bg-muted/30 border-border/50"
                       }`}>
                         <CloudRain className={`w-5 h-5 ${
-                          systemStatus?.rainDelay?.active ? "text-blue-400" : "text-muted-foreground"
+                          (piDiagnostics.isOnline ? piStatus?.rain?.is_active : backendStatus?.rainDelay?.active) ? "text-blue-400" : "text-muted-foreground"
                         }`} />
                       </div>
                       <div>
                         <p className="text-sm font-medium text-foreground">Rain Delay</p>
                         <p className="text-xs text-muted-foreground">
-                          {systemStatus?.rainDelay?.active ? "Active" : "Inactive"}
+                          {(piDiagnostics.isOnline ? piStatus?.rain?.is_active : backendStatus?.rainDelay?.active) ? "Active" : "Inactive"}
                         </p>
                       </div>
                     </div>
                     <Badge 
-                      variant={systemStatus?.rainDelay?.active ? "secondary" : "outline"}
-                      className={systemStatus?.rainDelay?.active ? "bg-blue-500/20 text-blue-400 border-blue-500/30" : ""}
+                      variant={(piDiagnostics.isOnline ? piStatus?.rain?.is_active : backendStatus?.rainDelay?.active) ? "secondary" : "outline"}
+                      className={(piDiagnostics.isOnline ? piStatus?.rain?.is_active : backendStatus?.rainDelay?.active) ? "bg-blue-500/20 text-blue-400 border-blue-500/30" : ""}
                     >
-                      {systemStatus?.rainDelay?.active ? "ON" : "OFF"}
+                      {(piDiagnostics.isOnline ? piStatus?.rain?.is_active : backendStatus?.rainDelay?.active) ? "ON" : "OFF"}
                     </Badge>
                   </div>
 
                   {/* Last Updated */}
                   <div className="text-xs text-muted-foreground">
-                    <p>Last updated: {systemStatus?.lastUpdated ? 
-                      new Date(systemStatus.lastUpdated).toLocaleTimeString() : 'Unknown'}</p>
+                    <p>Last updated: {(piDiagnostics.isOnline ? piStatus?.last_updated : backendStatus?.lastUpdated) ? 
+                      new Date(piDiagnostics.isOnline ? piStatus!.last_updated : backendStatus!.lastUpdated).toLocaleTimeString() : 'Unknown'}</p>
                   </div>
                 </div>
               </CardContent>
