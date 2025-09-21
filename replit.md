@@ -55,7 +55,11 @@ The schema supports:
 - **Middleware**: Custom authentication middleware for protected routes
 
 ### External Service Integrations
-- **Hardware Control**: Integration with Raspberry Pi GPIO via backend API
+- **Raspberry Pi Integration**: Direct browser-to-Pi communication with user's FastAPI backend
+  - **Pi Configuration**: Pre-configured for 192.168.1.24:8000 
+  - **API Endpoints**: `/api/status`, `/api/pins`, `/api/pin/{pin}/on`, `/api/pin/{pin}/off`
+  - **Mixed Content Handling**: Built-in detection and guidance for HTTPS→HTTP security issues
+  - **Fallback Support**: Graceful degradation to backend demo API when Pi unavailable
 - **Real-time Updates**: Polling-based status updates every 5-10 seconds
 - **Development Tools**: Replit-specific plugins for enhanced development experience
 
