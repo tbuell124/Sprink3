@@ -11,9 +11,10 @@ import {
   savePiConfigToStorage,
   PiConnectionConfig, 
   PiSystemStatus, 
-  PiZoneControlResponse, 
+  PiPinControlResponse, 
   PiConnectionError,
-  getNetworkTroubleshootingTips
+  getNetworkTroubleshootingTips,
+  PiPinsResponse
 } from "@/lib/pi-api";
 import { useState, useCallback, useMemo } from "react";
 
@@ -53,7 +54,7 @@ export function usePiConnectionTest() {
       if (result.success) {
         toast({
           title: "Connection Successful",
-          description: `Connected to Pi (Version: ${result.version})`,
+          description: `Connected to Pi (Backend: ${result.backend})`,
         });
       } else {
         toast({
@@ -121,6 +122,34 @@ export function usePiStatus(options?: {
 }
 
 /**
+ * Hook to get Pi pins status
+ */
+export function usePiPins(options?: { enabled?: boolean; refetchInterval?: number }) {
+  const { piClient, config } = usePiConfig();
+  const { enabled = true, refetchInterval = 5000 } = options || {};
+
+  return useQuery({
+    queryKey: ['pi-pins', config.ipAddress, config.port] as QueryKey,
+    queryFn: async (): Promise<PiPinsResponse | null> => {
+      try {
+        return await piClient.getPins();
+      } catch (error) {
+        if (error instanceof PiConnectionError) {
+          // Return null to indicate offline status instead of throwing
+          return null;
+        }
+        throw error;
+      }
+    },
+    enabled,
+    refetchInterval: enabled ? refetchInterval : false,
+    retry: false, // Disable retries to reduce console noise
+    staleTime: 10000, // Consider data stale after 10 seconds
+    gcTime: 60000, // Keep data in cache for 1 minute
+  });
+}
+
+/**
  * Hook to start a zone on the Pi
  */
 export function usePiStartZone() {
@@ -129,7 +158,7 @@ export function usePiStartZone() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ zone, duration }: { zone: number; duration: number }): Promise<PiZoneControlResponse> => {
+    mutationFn: async ({ zone, duration }: { zone: number; duration: number }): Promise<PiPinControlResponse> => {
       return await piClient.startZone(zone, duration);
     },
     onSuccess: (result, variables) => {
@@ -137,8 +166,9 @@ export function usePiStartZone() {
         title: "Zone Started",
         description: `Zone ${variables.zone} started for ${variables.duration} minutes`,
       });
-      // Invalidate status to get updated zone state
+      // Invalidate status and pins to get updated zone state
       queryClient.invalidateQueries({ queryKey: ['pi-status'] });
+      queryClient.invalidateQueries({ queryKey: ['pi-pins'] });
     },
     onError: (error: any, variables) => {
       let message = `Failed to start zone ${variables.zone}`;
@@ -150,6 +180,9 @@ export function usePiStartZone() {
             break;
           case 'network':
             message = "Cannot reach Pi. Check network connection.";
+            break;
+          case 'mixed_content':
+            message = "Mixed content blocked. See troubleshooting tips in console.";
             break;
           default:
             message = error.message;
@@ -174,7 +207,7 @@ export function usePiStopZone() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (zone: number): Promise<PiZoneControlResponse> => {
+    mutationFn: async (zone: number): Promise<PiPinControlResponse> => {
       return await piClient.stopZone(zone);
     },
     onSuccess: (result, zone) => {
@@ -182,8 +215,9 @@ export function usePiStopZone() {
         title: "Zone Stopped",
         description: `Zone ${zone} stopped successfully`,
       });
-      // Invalidate status to get updated zone state
+      // Invalidate status and pins to get updated zone state
       queryClient.invalidateQueries({ queryKey: ['pi-status'] });
+      queryClient.invalidateQueries({ queryKey: ['pi-pins'] });
     },
     onError: (error: any, zone) => {
       let message = `Failed to stop zone ${zone}`;
@@ -196,6 +230,9 @@ export function usePiStopZone() {
           case 'network':
             message = "Cannot reach Pi. Check network connection.";
             break;
+          case 'mixed_content':
+            message = "Mixed content blocked. See troubleshooting tips in console.";
+            break;
           default:
             message = error.message;
         }
@@ -207,6 +244,96 @@ export function usePiStopZone() {
         variant: "destructive",
       });
     },
+  });
+}
+
+/**
+ * Hook to control pins directly
+ */
+export function usePiPinControl() {
+  const { toast } = useToast();
+  const { piClient } = usePiConfig();
+  const queryClient = useQueryClient();
+
+  const turnOnMutation = useMutation({
+    mutationFn: async (pin: number): Promise<PiPinControlResponse> => {
+      return await piClient.turnPinOn(pin);
+    },
+    onSuccess: (result, pin) => {
+      toast({
+        title: "Pin Activated",
+        description: `Pin ${pin} turned on successfully`,
+      });
+      // Invalidate queries to refresh data
+      queryClient.invalidateQueries({ queryKey: ['pi-status'] });
+      queryClient.invalidateQueries({ queryKey: ['pi-pins'] });
+    },
+    onError: (error: any, pin) => {
+      handlePinControlError(error, `turn on pin ${pin}`, toast);
+    },
+  });
+
+  const turnOffMutation = useMutation({
+    mutationFn: async (pin: number): Promise<PiPinControlResponse> => {
+      return await piClient.turnPinOff(pin);
+    },
+    onSuccess: (result, pin) => {
+      toast({
+        title: "Pin Deactivated",
+        description: `Pin ${pin} turned off successfully`,
+      });
+      // Invalidate queries to refresh data
+      queryClient.invalidateQueries({ queryKey: ['pi-status'] });
+      queryClient.invalidateQueries({ queryKey: ['pi-pins'] });
+    },
+    onError: (error: any, pin) => {
+      handlePinControlError(error, `turn off pin ${pin}`, toast);
+    },
+  });
+
+  return {
+    turnOn: turnOnMutation,
+    turnOff: turnOffMutation,
+  };
+}
+
+/**
+ * Helper function to handle pin control errors
+ */
+function handlePinControlError(error: any, action: string, toast: any) {
+  let message = `Failed to ${action}`;
+  
+  if (error instanceof PiConnectionError) {
+    switch (error.type) {
+      case 'auth':
+        message = "Authentication failed. Check your API token.";
+        break;
+      case 'network':
+        message = "Cannot reach Pi. Check network connection.";
+        break;
+      case 'mixed_content':
+        message = "Mixed content blocked. You're accessing this page over HTTPS but the Pi uses HTTP. See troubleshooting tips in console.";
+        break;
+      case 'cors':
+        message = "Cross-origin request blocked. The Pi needs to allow CORS.";
+        break;
+      default:
+        message = error.message;
+    }
+    
+    // Log troubleshooting tips for detailed errors
+    const tips = getNetworkTroubleshootingTips(error);
+    if (tips.length > 0) {
+      console.group("Pi Connection Troubleshooting Tips:");
+      tips.forEach(tip => console.log(`• ${tip}`));
+      console.groupEnd();
+    }
+  }
+
+  toast({
+    title: "Pin Control Failed",
+    description: message,
+    variant: "destructive",
   });
 }
 
@@ -268,29 +395,42 @@ export function usePiConnection() {
  */
 export function usePiZones(options?: { enabled?: boolean; refetchInterval?: number }) {
   const piStatusQuery = usePiStatus(options);
+  const piPinsQuery = usePiPins(options);
 
   // Transform Pi pin data to zone format that matches the backend API
   const zones = useMemo(() => {
-    if (!piStatusQuery.data?.pins) return [];
+    if (!piStatusQuery.data?.pins || !piPinsQuery.data?.pins) return [];
 
-    return piStatusQuery.data.pins.map((pin, index) => ({
+    // Create a map of pin states for quick lookup
+    const pinStateMap = new Map();
+    piPinsQuery.data.pins.forEach(pin => {
+      pinStateMap.set(pin.pin, pin.state === 'on');
+    });
+
+    return piStatusQuery.data.pins.map((pinNumber, index) => ({
       id: `pi-zone-${index + 1}`,
       zoneNumber: index + 1,
-      gpioPin: pin.pin,
-      name: pin.name || `Zone ${index + 1}`,
-      isEnabled: pin.is_enabled,
-      isRunning: pin.is_active,
-      isActive: pin.is_active,
-      minutesLeft: 0, // We'd need to calculate this from status data
-      currentRunSource: pin.is_active ? 'manual' : null,
+      gpioPin: pinNumber,
+      name: `Zone ${index + 1}`,
+      isEnabled: !piStatusQuery.data?.deny.includes(pinNumber), // Not in deny list
+      isRunning: pinStateMap.get(pinNumber) || false,
+      isActive: pinStateMap.get(pinNumber) || false,
+      minutesLeft: 0, // We'd need to calculate this from additional data
+      currentRunSource: pinStateMap.get(pinNumber) ? 'manual' : null,
       defaultDuration: 30, // Default value since Pi doesn't provide this
     }));
-  }, [piStatusQuery.data]);
+  }, [piStatusQuery.data, piPinsQuery.data]);
 
   return {
-    ...piStatusQuery,
     data: zones,
+    isLoading: piStatusQuery.isLoading || piPinsQuery.isLoading,
+    error: piStatusQuery.error || piPinsQuery.error,
+    refetch: () => {
+      piStatusQuery.refetch();
+      piPinsQuery.refetch();
+    },
     piRawData: piStatusQuery.data,
+    piPinsData: piPinsQuery.data,
   };
 }
 
@@ -336,11 +476,12 @@ export function usePiDiagnostics() {
       connectionUrl: info.url,
       hasApiToken: info.hasToken,
       isConfigured: !!config.ipAddress,
-      isOnline: !!status,
-      lastUpdate: status?.last_updated,
-      version: status?.version,
-      rainDelay: status?.rain?.is_active || false,
-      activeZones: status?.pins?.filter(p => p.is_active).length || 0,
+      isOnline: !!status && status.ok,
+      backend: status?.backend,
+      pigpioConnected: status?.pigpio_connected || false,
+      allowedPins: status?.pins || [],
+      deniedPins: status?.deny || [],
+      allowMode: status?.allow_mode || '',
       error: statusError instanceof PiConnectionError ? statusError : null,
     };
   }, [config, piClient, status, statusError]);

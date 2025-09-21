@@ -10,49 +10,34 @@ export interface PiConnectionConfig {
   apiToken?: string;
 }
 
-export interface PiZoneStatus {
-  zone: number;
-  gpio: number;
+export interface PiPin {
+  pin: number;
+  state: 'on' | 'off';
   name?: string;
-  is_active: boolean;
-  is_enabled: boolean;
-  minutes_left?: number;
-  source?: string;
 }
 
 export interface PiSystemStatus {
-  version: string;
-  last_updated: string;
-  pins: Array<{
-    pin: number;
-    name?: string;
-    is_active: boolean;
-    is_enabled: boolean;
-  }>;
-  schedules: Array<{
-    id: string;
-    name?: string;
-    start_time: string;
-    days: string[];
-    is_enabled: boolean;
-    duration: number;
-  }>;
-  rain: {
-    is_active: boolean;
-    ends_at?: string;
-    duration_hours?: number;
-  };
+  ok: boolean;
+  pins: number[];
+  allow_mode: string;
+  deny: number[];
+  backend: string;
+  pigpio_connected: boolean;
+}
+
+export interface PiPinsResponse {
+  pins: PiPin[];
 }
 
 export interface PiZoneControlRequest {
   minutes: number;
 }
 
-export interface PiZoneControlResponse {
-  zone: number;
-  gpio: number;
-  on: boolean;
-  minutes_left: number;
+export interface PiPinControlResponse {
+  pin: number;
+  state: 'on' | 'off';
+  success: boolean;
+  message?: string;
 }
 
 export class PiConnectionError extends Error {
@@ -84,12 +69,12 @@ export class PiApiClient {
   /**
    * Test connection to the Pi
    */
-  async testConnection(): Promise<{ success: boolean; version?: string; error?: string }> {
+  async testConnection(): Promise<{ success: boolean; backend?: string; error?: string }> {
     try {
-      const response = await this.makeRequest('/status', 'GET');
+      const response = await this.makeRequest('/api/status', 'GET');
       return {
-        success: true,
-        version: response.version || 'Unknown',
+        success: response.ok === true,
+        backend: response.backend || 'Unknown',
       };
     } catch (error) {
       if (error instanceof PiConnectionError) {
@@ -109,21 +94,45 @@ export class PiApiClient {
    * Get system status from Pi
    */
   async getStatus(): Promise<PiSystemStatus> {
-    return this.makeRequest('/status', 'GET');
+    return this.makeRequest('/api/status', 'GET');
   }
 
   /**
-   * Start a zone on the Pi
+   * Get pins status from Pi
    */
-  async startZone(zone: number, duration: number): Promise<PiZoneControlResponse> {
-    return this.makeRequest(`/zone/on/${zone}`, 'POST', { minutes: duration });
+  async getPins(): Promise<PiPinsResponse> {
+    return this.makeRequest('/api/pins', 'GET');
   }
 
   /**
-   * Stop a zone on the Pi
+   * Turn a pin on
    */
-  async stopZone(zone: number): Promise<PiZoneControlResponse> {
-    return this.makeRequest(`/zone/off/${zone}`, 'POST');
+  async turnPinOn(pin: number): Promise<PiPinControlResponse> {
+    return this.makeRequest(`/api/pin/${pin}/on`, 'POST');
+  }
+
+  /**
+   * Turn a pin off
+   */
+  async turnPinOff(pin: number): Promise<PiPinControlResponse> {
+    return this.makeRequest(`/api/pin/${pin}/off`, 'POST');
+  }
+
+  /**
+   * Start a zone on the Pi (wrapper for pin control)
+   */
+  async startZone(zone: number, duration: number): Promise<PiPinControlResponse> {
+    // For backward compatibility, map zone to pin
+    // Assuming zone numbers start at 1 and correspond to pin numbers
+    return this.turnPinOn(zone);
+  }
+
+  /**
+   * Stop a zone on the Pi (wrapper for pin control)
+   */
+  async stopZone(zone: number): Promise<PiPinControlResponse> {
+    // For backward compatibility, map zone to pin
+    return this.turnPinOff(zone);
   }
 
   /**
@@ -131,24 +140,9 @@ export class PiApiClient {
    */
   async getHealth(): Promise<{ status: string }> {
     try {
-      // Try a simple health check first
-      const response = await fetch(`${this.baseUrl}/health`, {
-        method: 'GET',
-        headers: this.getHeaders(),
-        signal: AbortSignal.timeout(5000), // 5 second timeout
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-
-      return await response.json();
+      const statusResponse = await this.getStatus();
+      return { status: statusResponse.ok ? 'ok' : 'error' };
     } catch (error) {
-      // If /health doesn't exist, try /status as fallback
-      if (error instanceof Error && error.message.includes('404')) {
-        const statusResponse = await this.getStatus();
-        return { status: 'ok' };
-      }
       throw error;
     }
   }
@@ -181,7 +175,7 @@ export class PiApiClient {
 
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout (reduced)
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // Increased timeout to 10 seconds
 
       const response = await fetch(url, {
         method,
@@ -253,7 +247,7 @@ export class PiApiClient {
 
         if (errorMessage.includes('mixed content') || errorMessage.includes('https')) {
           throw new PiConnectionError(
-            isDemoMode ? 'Pi not available (demo mode)' : 'Mixed content error. Try using HTTPS or accessing this page over HTTP.',
+            isDemoMode ? 'Pi not available (demo mode)' : 'Mixed content blocked. You\'re accessing this page over HTTPS but trying to connect to HTTP Pi. See troubleshooting tips below.',
             'mixed_content',
             error
           );
@@ -353,23 +347,27 @@ export function getNetworkTroubleshootingTips(error: PiConnectionError): string[
         'Check that the Raspberry Pi is powered on and connected to your network',
         'Verify the IP address is correct (try pinging it from your computer)',
         'Make sure both your browser and Pi are on the same network',
-        'Check if the Pi\'s firewall is blocking port 8000'
+        'Check if the Pi\'s firewall is blocking the port (default 8000)',
+        'Try accessing the Pi directly: http://[PI_IP]:8000/api/status'
       );
       break;
 
     case 'cors':
       tips.push(
         'The Pi should allow CORS by default, but check the server logs',
-        'Try accessing the Pi directly in your browser: http://[PI_IP]:8000/status',
-        'Restart the sprinkler service on the Pi'
+        'Try accessing the Pi directly in your browser: http://[PI_IP]:8000/api/status',
+        'Restart the sprinkler service on the Pi',
+        'Check if the Pi\'s web server is configured to allow cross-origin requests'
       );
       break;
 
     case 'mixed_content':
       tips.push(
-        'You\'re accessing this page over HTTPS but the Pi uses HTTP',
-        'Either: Access this page over HTTP, or configure the Pi to use HTTPS',
-        'Or: Use the "Allow insecure content" option in your browser settings'
+        'Mixed content security: You\'re accessing this page over HTTPS but the Pi uses HTTP',
+        'Solution 1: Access this page over HTTP instead of HTTPS',
+        'Solution 2: Configure the Pi to use HTTPS (more complex)',
+        'Solution 3: Click the shield icon in your browser\'s address bar and allow insecure content',
+        'Solution 4: In Chrome, click "Not secure" -> "Site settings" -> "Insecure content" -> "Allow"'
       );
       break;
 
@@ -377,24 +375,28 @@ export function getNetworkTroubleshootingTips(error: PiConnectionError): string[
       tips.push(
         'Check that the API token is correctly configured',
         'The token should match the SPRINKLER_API_TOKEN environment variable on the Pi',
-        'Try leaving the token empty if the Pi doesn\'t require authentication'
+        'Try leaving the token empty if the Pi doesn\'t require authentication',
+        'Verify the token format and ensure there are no extra spaces'
       );
       break;
 
     case 'timeout':
       tips.push(
-        'The Pi is taking too long to respond',
-        'Check your network connection speed',
+        'The Pi is taking too long to respond (timeout after 10 seconds)',
+        'Check your network connection speed and stability',
         'The Pi might be overloaded - try restarting it',
-        'Check if there are network latency issues'
+        'Check if there are network latency issues between your device and Pi',
+        'Verify the Pi\'s CPU and memory usage'
       );
       break;
 
     case 'server_error':
       tips.push(
-        'The Pi returned an error - check the Pi\'s logs',
+        'The Pi returned an error - check the Pi\'s logs for details',
         'The sprinkler service might need to be restarted',
-        'Check if the Pi has enough disk space and memory'
+        'Check if the Pi has enough disk space and memory',
+        'Verify that the pigpio service is running on the Pi',
+        'Check that all required Python dependencies are installed'
       );
       break;
   }
