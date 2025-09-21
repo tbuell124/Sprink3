@@ -374,24 +374,6 @@ export default function Dashboard() {
                       </Badge>
                     </div>
                     
-                    <div className="grid grid-cols-4 gap-2 mb-4">
-                      {/* Quick duration presets */}
-                      {[5, 10, 15, 30].map((duration) => (
-                        <Button
-                          key={duration}
-                          size="sm"
-                          variant={isActive ? "outline" : "secondary"}
-                          className="h-10 text-sm btn-mobile touch-feedback"
-                          onClick={() => handleQuickStart(zone.zoneNumber || zone.id, duration)}
-                          disabled={!isEnabled || startZoneMutation.isPending || isActive}
-                          data-testid={`start-zone-${zone.zoneNumber || zone.id}-${duration}min`}
-                          aria-label={`Start ${zone.name} for ${duration} minutes. ${isActive ? 'Currently running.' : 'Currently off.'}`}
-                          aria-describedby={`zone-${zone.zoneNumber || zone.id}-status`}
-                        >
-                          {duration}m
-                        </Button>
-                      ))}
-                    </div>
                     
                     <div className="flex flex-col space-y-3">
                       {/* Custom duration input */}
