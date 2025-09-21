@@ -114,14 +114,9 @@ export function usePiStatus(options?: {
     },
     enabled,
     refetchInterval: enabled ? refetchInterval : false,
-    retry: (failureCount, error) => {
-      // Don't retry on auth errors or if explicitly disabled
-      if (error instanceof PiConnectionError && error.type === 'auth') {
-        return false;
-      }
-      return failureCount < 2; // Retry up to 2 times
-    },
-    retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000),
+    retry: false, // Disable retries to reduce console noise
+    staleTime: 10000, // Consider data stale after 10 seconds
+    gcTime: 60000, // Keep data in cache for 1 minute
   });
 }
 
@@ -233,8 +228,10 @@ export function usePiConnection() {
         return { connected: false, lastCheck: new Date(), error };
       }
     },
-    refetchInterval: 30000, // Check every 30 seconds
+    refetchInterval: 60000, // Check every 60 seconds (less frequent)
     retry: false, // Don't retry health checks
+    staleTime: 30000, // Consider stale after 30 seconds
+    gcTime: 120000, // Keep in cache for 2 minutes
   });
 
   const updatePiConfig = useMutation({

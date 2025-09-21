@@ -181,7 +181,7 @@ export class PiApiClient {
 
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout (reduced)
 
       const response = await fetch(url, {
         method,
@@ -240,9 +240,12 @@ export class PiApiClient {
         // Network error, CORS, or mixed content
         const errorMessage = error.message.toLowerCase();
         
+        // In demo mode, suppress verbose error messages for expected failures
+        const isDemoMode = this.config.ipAddress === '192.168.1.100' && !this.config.apiToken;
+        
         if (errorMessage.includes('cors')) {
           throw new PiConnectionError(
-            'CORS error. Make sure the Pi allows cross-origin requests from your browser.',
+            isDemoMode ? 'Pi not available (demo mode)' : 'CORS error. Make sure the Pi allows cross-origin requests from your browser.',
             'cors',
             error
           );
@@ -250,7 +253,7 @@ export class PiApiClient {
 
         if (errorMessage.includes('mixed content') || errorMessage.includes('https')) {
           throw new PiConnectionError(
-            'Mixed content error. Try using HTTPS or accessing this page over HTTP.',
+            isDemoMode ? 'Pi not available (demo mode)' : 'Mixed content error. Try using HTTPS or accessing this page over HTTP.',
             'mixed_content',
             error
           );
@@ -258,7 +261,7 @@ export class PiApiClient {
 
         if (errorMessage.includes('network') || errorMessage.includes('fetch')) {
           throw new PiConnectionError(
-            `Network error: Unable to reach Pi at ${this.config.ipAddress}:${this.config.port}. Check IP address and network connectivity.`,
+            isDemoMode ? 'Pi offline (demo mode)' : `Network error: Unable to reach Pi at ${this.config.ipAddress}:${this.config.port}. Check IP address and network connectivity.`,
             'network',
             error
           );
@@ -318,6 +321,14 @@ export function getPiConfigFromStorage(): PiConnectionConfig {
   const apiToken = localStorage.getItem('piApiToken') || '';
 
   return { ipAddress, port, useHttps, apiToken };
+}
+
+/**
+ * Check if we're in demo mode (no actual Pi configured)
+ */
+export function isDemoMode(): boolean {
+  const config = getPiConfigFromStorage();
+  return config.ipAddress === '192.168.1.100' && !config.apiToken;
 }
 
 /**
