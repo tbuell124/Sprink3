@@ -1,0 +1,54 @@
+tybuell@sprinkler:~/Sprink $ pm2 start npm --name "sprinkler-web" -- run dev
+[PM2] Starting /usr/bin/npm in fork_mode (1 instance)
+[PM2] Done.
+┌────┬────────────────────┬──────────┬──────┬───────────┬──────────┬──────────┐
+│ id │ name               │ mode     │ ↺    │ status    │ cpu      │ memory   │
+├────┼────────────────────┼──────────┼──────┼───────────┼──────────┼──────────┤
+│ 0  │ sprinkler-web      │ fork     │ 21   │ stopped   │ 0%       │ 0b       │
+│ 1  │ sprinkler-web      │ fork     │ 6    │ stopped   │ 0%       │ 0b       │
+│ 2  │ sprinkler-web      │ fork     │ 0    │ online    │ 0%       │ 22.2mb   │
+└────┴────────────────────┴──────────┴──────┴───────────┴──────────┴──────────┘
+tybuell@sprinkler:~/Sprink $ pm2 logs sprinkler-web --lines 10
+[TAILING] Tailing last 10 lines for [sprinkler-web] process (change the value with --lines option)
+/home/tybuell/.pm2/logs/sprinkler-web-error.log last 10 lines:
+0|sprinkle |     at Object.resolve (node:path:1115:7)
+0|sprinkle |     at <anonymous> (/home/tybuell/Sprink/vite.config.ts:24:17)
+0|sprinkle |     at ModuleJob.run (node:internal/modules/esm/module_job:195:25)
+0|sprinkle |     at async ModuleLoader.import (node:internal/modules/esm/loader:337:24)
+0|sprinkle |     at async loadESM (node:internal/process/esm_loader:34:7)
+0|sprinkle |     at async handleMainPromise (node:internal/modules/run_main:106:12) {
+0|sprinkle |   code: 'ERR_INVALID_ARG_TYPE'
+0|sprinkle | }
+0|sprinkle | 
+0|sprinkle | Node.js v18.20.8
+
+/home/tybuell/.pm2/logs/sprinkler-web-out.log last 10 lines:
+0|sprinkle | > NODE_ENV=development tsx server/index.ts
+0|sprinkle | 
+0|sprinkle | 
+0|sprinkle | > rest-express@1.0.0 dev
+0|sprinkle | > NODE_ENV=development tsx server/index.ts
+0|sprinkle | 
+0|sprinkle | 
+0|sprinkle | > rest-express@1.0.0 dev
+0|sprinkle | > NODE_ENV=development tsx server/index.ts
+0|sprinkle | 
+
+2|sprinkler-web  | node:internal/errors:496
+2|sprinkler-web  |     ErrorCaptureStackTrace(err);
+2|sprinkler-web  |     ^
+2|sprinkler-web  | TypeError [ERR_INVALID_ARG_TYPE]: The "paths[0]" argument must be of type string. Received undefined
+2|sprinkler-web  |     at __node_internal_captureLargerStackTrace (node:internal/errors:496:5)
+2|sprinkler-web  |     at new NodeError (node:internal/errors:405:5)
+2|sprinkler-web  |     at validateString (node:internal/validators:162:11)
+2|sprinkler-web  |     at Object.resolve (node:path:1115:7)
+2|sprinkler-web  |     at <anonymous> (/home/tybuell/Sprink/vite.config.ts:24:17)
+2|sprinkler-web  |     at ModuleJob.run (node:internal/modules/esm/module_job:195:25)
+2|sprinkler-web  |     at async ModuleLoader.import (node:internal/modules/esm/loader:337:24)
+2|sprinkler-web  |     at async loadESM (node:internal/process/esm_loader:34:7)
+2|sprinkler-web  |     at async handleMainPromise (node:internal/modules/run_main:106:12) {
+2|sprinkler-web  |   code: 'ERR_INVALID_ARG_TYPE'
+2|sprinkler-web  | }
+2|sprinkler-web  | Node.js v18.20.8
+2|sprinkler-web  | > rest-express@1.0.0 dev
+2|sprinkler-web  | > NODE_ENV=development tsx server/index.ts
