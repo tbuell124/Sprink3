@@ -20,7 +20,8 @@ import {
   Wifi,
   Check,
   X,
-  Loader
+  Loader,
+  AlertTriangle
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -229,6 +230,34 @@ export default function Settings() {
           <h1 className="text-2xl font-bold text-foreground">Settings</h1>
           <p className="text-muted-foreground">Zone configuration and system settings</p>
         </div>
+
+        {/* Mixed Content Security Warning */}
+        {piDiagnostics.error?.type === 'mixed_content' && (
+          <div className="mb-6 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg" data-testid="mixed-content-warning">
+            <div className="flex items-start space-x-3">
+              <AlertTriangle className="w-5 h-5 text-yellow-600 dark:text-yellow-400 mt-0.5 flex-shrink-0" />
+              <div className="flex-1">
+                <h3 className="font-semibold text-yellow-800 dark:text-yellow-200 mb-2">
+                  Browser Security Blocking Connection
+                </h3>
+                <p className="text-yellow-700 dark:text-yellow-300 text-sm mb-3">
+                  Your browser is blocking the connection because this page is served over HTTPS but your Pi uses HTTP. This is a security feature.
+                </p>
+                <div className="space-y-2">
+                  <p className="text-yellow-800 dark:text-yellow-200 font-medium text-sm">To connect to your Pi:</p>
+                  <div className="bg-yellow-100 dark:bg-yellow-900/40 p-3 rounded border">
+                    <p className="text-yellow-900 dark:text-yellow-100 text-sm font-mono">
+                      {window.location.href.replace('https://', 'http://')}
+                    </p>
+                    <p className="text-yellow-700 dark:text-yellow-300 text-xs mt-1">
+                      Copy this HTTP URL and open it in a new tab
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Raspberry Pi Configuration */}
         <Card className="mb-6" data-testid="pi-configuration">

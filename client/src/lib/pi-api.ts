@@ -246,7 +246,13 @@ export class PiApiClient {
           );
         }
 
-        if (errorMessage.includes('mixed content') || errorMessage.includes('https')) {
+        // Check for mixed content blocking (common when HTTPS page tries to access HTTP device)
+        const isHttpsPage = window.location.protocol === 'https:';
+        const isHttpTarget = !this.config.useHttps;
+        const isFailedFetch = errorMessage.includes('failed to fetch');
+        
+        if ((errorMessage.includes('mixed content') || errorMessage.includes('https')) || 
+            (isHttpsPage && isHttpTarget && isFailedFetch)) {
           throw new PiConnectionError(
             isDemoMode ? 'Pi not available (demo mode)' : `Mixed content blocked: This page is served over HTTPS but your Pi at ${this.config.ipAddress}:${this.config.port} uses HTTP. Click the shield icon in your browser address bar and allow insecure content, or access this page over HTTP instead.`,
             'mixed_content',
