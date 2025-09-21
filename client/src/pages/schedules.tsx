@@ -25,11 +25,8 @@ import type { Zone, Schedule, ScheduleStep } from "@shared/schema";
 
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as const;
 
-// Types for schedule form
-interface ScheduleStep {
-  zoneId: string;
-  duration: number;
-  stepOrder: number;
+// Types for schedule form - extend shared ScheduleStep with UI-only fields
+interface UIScheduleStep extends ScheduleStep {
   zoneName?: string;
   zoneNumber?: number;
 }
@@ -40,7 +37,7 @@ interface ScheduleFormData {
   days: string[];
   isEnabled: boolean;
   defaultDurationPerZone: number;
-  steps: ScheduleStep[];
+  steps: UIScheduleStep[];
 }
 
 export default function Schedules() {
