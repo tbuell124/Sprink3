@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -54,7 +55,7 @@ export default function Dashboard() {
   const queryClient = useQueryClient();
   
   // State for custom duration inputs
-  const [customDurations, setCustomDurations] = React.useState<Record<string, string>>({});
+  const [customDurations, setCustomDurations] = useState<Record<string, string>>({});
   
   // Pi direct communication hooks
   const { data: piStatus, isLoading: piStatusLoading, error: piError } = usePiStatus({
