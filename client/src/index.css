@@ -100,9 +100,10 @@
 }
 
 @layer utilities {
-  /* Mobile-first utilities */
+  /* Enhanced mobile-first utilities */
   .touch-manipulation {
     touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
   }
   
   /* Safe area support for mobile devices */
@@ -122,15 +123,230 @@
     padding-right: env(safe-area-inset-right);
   }
 
-  /* Mobile-optimized button sizes */
+  /* Enhanced mobile button utilities */
   .btn-mobile {
     min-height: 44px;
     min-width: 44px;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    transition: all 0.15s ease-out;
+    user-select: none;
   }
   
-  /* Thumb-friendly spacing */
+  .btn-mobile-lg {
+    min-height: 56px;
+    min-width: 56px;
+    padding: 16px;
+    font-size: 16px;
+    font-weight: 600;
+  }
+  
+  .btn-mobile-xl {
+    min-height: 64px;
+    min-width: 64px;
+    padding: 20px;
+    font-size: 18px;
+    font-weight: 600;
+  }
+  
+  /* Touch feedback effects */
+  .touch-feedback {
+    transition: all 0.15s ease-out;
+    transform-origin: center;
+  }
+  
+  .touch-feedback:active {
+    transform: scale(0.95);
+    filter: brightness(0.9);
+  }
+  
+  .touch-feedback-soft:active {
+    transform: scale(0.98);
+    opacity: 0.8;
+  }
+  
+  .touch-feedback-strong:active {
+    transform: scale(0.92);
+    filter: brightness(0.8);
+  }
+  
+  /* Thumb-friendly spacing and layout */
   .thumb-spacing {
     margin-bottom: calc(44px + env(safe-area-inset-bottom));
+  }
+  
+  .thumb-reach-spacing {
+    padding: 12px 16px;
+    margin: 8px 0;
+  }
+  
+  .mobile-grid {
+    display: grid;
+    gap: 12px;
+    padding: 16px;
+  }
+  
+  .mobile-grid-sm {
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  }
+  
+  .mobile-grid-md {
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  }
+  
+  .mobile-grid-lg {
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  }
+  
+  /* Mobile typography enhancements */
+  .mobile-text-primary {
+    font-size: 18px;
+    line-height: 1.4;
+    font-weight: 600;
+  }
+  
+  .mobile-text-secondary {
+    font-size: 14px;
+    line-height: 1.5;
+    font-weight: 500;
+  }
+  
+  .mobile-text-caption {
+    font-size: 12px;
+    line-height: 1.4;
+    font-weight: 500;
+  }
+  
+  /* Mobile scrolling optimizations */
+  .mobile-scroll {
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    scroll-behavior: smooth;
+  }
+  
+  .mobile-scroll::-webkit-scrollbar {
+    display: none;
+  }
+  
+  /* Enhanced focus states for mobile accessibility */
+  .mobile-focus:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+    border-radius: var(--radius);
+  }
+  
+  /* Mobile card enhancements */
+  .mobile-card {
+    border-radius: 12px;
+    padding: 16px;
+    margin: 8px 0;
+    min-height: 44px;
+    box-shadow: 0 2px 8px hsl(0 0% 0% / 0.1);
+    transition: all 0.2s ease-out;
+  }
+  
+  .mobile-card:active {
+    transform: scale(0.98);
+    box-shadow: 0 1px 4px hsl(0 0% 0% / 0.1);
+  }
+  
+  /* Mobile form optimizations */
+  .mobile-input {
+    min-height: 48px;
+    padding: 12px 16px;
+    font-size: 16px; /* Prevents zoom on iOS */
+    border-radius: 8px;
+    touch-action: manipulation;
+  }
+  
+  .mobile-input:focus {
+    outline: 2px solid var(--primary);
+    outline-offset: 1px;
+  }
+  
+  /* Mobile modal and dialog enhancements */
+  .mobile-modal {
+    border-radius: 16px 16px 0 0;
+    max-height: 90vh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  .mobile-modal-backdrop {
+    backdrop-filter: blur(8px);
+    background: hsl(0 0% 0% / 0.5);
+  }
+  
+  /* Mobile navigation enhancements */
+  .mobile-nav-item {
+    min-height: 64px;
+    min-width: 64px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 8px;
+    border-radius: 12px;
+    transition: all 0.2s ease-out;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  .mobile-nav-item:active {
+    transform: scale(0.95);
+    background: var(--accent);
+  }
+  
+  /* Loading states optimized for mobile */
+  .mobile-loading {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--muted);
+    border-radius: 8px;
+    animation: mobile-pulse 1.5s ease-in-out infinite;
+  }
+  
+  @keyframes mobile-pulse {
+    0%, 100% {
+      opacity: 0.8;
+    }
+    50% {
+      opacity: 0.4;
+    }
+  }
+  
+  /* Mobile-specific animations */
+  .mobile-slide-up {
+    animation: mobile-slide-up 0.3s ease-out;
+  }
+  
+  @keyframes mobile-slide-up {
+    from {
+      transform: translateY(100%);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+  
+  .mobile-fade-in {
+    animation: mobile-fade-in 0.2s ease-out;
+  }
+  
+  @keyframes mobile-fade-in {
+    from {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
   }
 
   /* Sprinkler-specific modern utilities */
