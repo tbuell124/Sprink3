@@ -109,6 +109,7 @@ export class MemStorage implements IStorage {
     // Initialize system status
     this.systemStatus = {
       id: "system",
+      masterEnabled: true,
       rainDelayActive: false,
       rainDelayEndsAt: null,
       connectivity: "online",

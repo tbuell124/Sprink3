@@ -58,6 +58,7 @@ export const zoneRuns = pgTable("zone_runs", {
 
 export const systemStatus = pgTable("system_status", {
   id: varchar("id").primaryKey().default("system"),
+  masterEnabled: boolean("master_enabled").notNull().default(true), // Master system enable/disable
   rainDelayActive: boolean("rain_delay_active").notNull().default(false),
   rainDelayEndsAt: timestamp("rain_delay_ends_at"),
   connectivity: text("connectivity").notNull().default("online"), // online, offline, error
@@ -253,4 +254,9 @@ export const rainDelaySettingsUpdateSchema = z.object({
   check12Hour: z.boolean().optional(),
   check24Hour: z.boolean().optional(),
   weatherApiKey: z.string().optional(),
+});
+
+// Master control validation
+export const masterControlSchema = z.object({
+  enabled: z.boolean(),
 });

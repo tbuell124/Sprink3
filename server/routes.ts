@@ -8,7 +8,8 @@ import {
   scheduleUpdateSchema,
   insertScheduleSchema,
   insertZoneSchema,
-  rainDelaySettingsUpdateSchema
+  rainDelaySettingsUpdateSchema,
+  masterControlSchema
 } from "@shared/schema";
 import { z } from "zod";
 
@@ -146,6 +147,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         version: "1.0.0",
         lastUpdated: systemStatus.lastUpdated.toISOString(),
         connectivity: systemStatus.connectivity,
+        masterEnabled: systemStatus.masterEnabled,
         zones: formattedZones,
         activeRuns: activeRuns.length,
         upcomingSchedules,
@@ -179,8 +181,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: `Zone ${zoneNumber} is disabled` });
       }
 
-      // Check for rain delay
+      // Check for rain delay and master control
       const systemStatus = await storage.getSystemStatus();
+      
+      // Check master control first
+      if (!systemStatus.masterEnabled) {
+        return res.status(423).json({ error: "Master control is disabled" });
+      }
+      
       if (systemStatus.rainDelayActive && systemStatus.rainDelayEndsAt && new Date() < systemStatus.rainDelayEndsAt) {
         return res.status(423).json({ error: "Rain delay is active" });
       }
@@ -710,6 +718,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // System Settings
+  // Master Control System
+  app.put("/api/system/master", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { enabled } = masterControlSchema.parse(req.body);
+      
+      const systemStatus = await storage.updateSystemStatus({
+        masterEnabled: enabled,
+        lastUpdated: new Date(),
+      });
+
+      // If disabling master control, stop all active zones for safety
+      if (!enabled) {
+        const activeRuns = await storage.getActiveZoneRuns();
+        for (const run of activeRuns) {
+          await storage.cancelZoneRun(run.id);
+        }
+
+        // Create notification
+        await storage.createNotification({
+          userId: req.userId,
+          type: "system_disabled",
+          title: "System Disabled",
+          message: "Master control disabled. All zones stopped for safety.",
+          read: 0,
+          relatedZoneId: null,
+          relatedScheduleId: null,
+        });
+      }
+
+      res.json({
+        masterEnabled: systemStatus.masterEnabled,
+        lastUpdated: systemStatus.lastUpdated.toISOString(),
+      });
+    } catch (error) {
+      console.error("Failed to update master control:", error);
+      res.status(400).json({ error: "Failed to update master control" });
+    }
+  });
+
   app.get("/api/system-settings", requireAuth, async (req: Request, res: Response) => {
     try {
       const systemStatus = await storage.getSystemStatus();

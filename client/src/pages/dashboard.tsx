@@ -49,6 +49,21 @@ interface BackendStatusResponse {
     url: string | null;
     connected: boolean;
   };
+  masterEnabled?: boolean;
+  schedules?: Array<{
+    id: string;
+    name?: string;
+    nextRun?: string;
+    isRunning?: boolean;
+    zoneIds?: number[];
+    minutesLeft?: number;
+    steps?: Array<{
+      zoneNumber: number;
+      duration: number;
+      timeLeft?: number;
+    }>;
+    currentStep?: number;
+  }>;
 }
 
 export default function Dashboard() {
@@ -159,6 +174,51 @@ export default function Dashboard() {
     isPending: piStopZoneMutation.isPending || backendStopZoneMutation.isPending,
   };
 
+
+  // Master control mutation
+  const masterControlMutation = useMutation({
+    mutationFn: async (enabled: boolean) => {
+      // Note: This endpoint needs to be implemented in the backend
+      return apiRequest('PUT', '/api/system/master', { enabled });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/status'] });
+      toast({
+        title: "Master Control",
+        description: "System control updated successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.response?.data?.error || "Failed to update master control",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Rain delay settings mutation
+  const rainDelayMutation = useMutation({
+    mutationFn: async (updates: any) => {
+      return apiRequest('PUT', '/api/rain-delay-settings', updates);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/rain-delay-settings'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/status'] });
+      toast({
+        title: "Rain Delay Settings",
+        description: "Settings updated successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.response?.data?.error || "Failed to update rain delay settings",
+        variant: "destructive",
+      });
+    },
+  });
+
   // Calculate stats from system data
   const statsData = {
     totalZones: zones.length,
@@ -173,9 +233,19 @@ export default function Dashboard() {
   const activeZones = zones.filter((zone: any) => zone.isRunning || zone.isActive);
   const upcomingSchedules = piDiagnostics.isOnline ? 
     [] : 
-    (backendStatus?.upcomingSchedules?.slice(0, 3) || []);
+    (backendStatus?.upcomingSchedules?.slice(0, 1) || []);
 
   const handleQuickStart = (zoneNumber: number, duration: number = 30) => {
+    // Check master control before starting any zone
+    if (!backendStatus?.masterEnabled) {
+      toast({
+        title: "System Disabled",
+        description: "Master control is disabled. Enable it to start zones.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (piDiagnostics.isOnline) {
       piStartZoneMutation.mutate({ zone: zoneNumber, duration });
     } else {
@@ -359,9 +429,9 @@ export default function Dashboard() {
                 <Switch
                   checked={backendStatus?.masterEnabled || false}
                   onCheckedChange={(checked) => {
-                    // TODO: Implement master enable/disable functionality
-                    console.log('Master control toggled:', checked);
+                    masterControlMutation.mutate(checked);
                   }}
+                  disabled={masterControlMutation.isPending}
                   className="data-[state=checked]:bg-primary"
                   data-testid="master-control-switch"
                 />
@@ -410,11 +480,11 @@ export default function Dashboard() {
                   <p className="text-xs text-muted-foreground">Monitor weather automatically</p>
                 </div>
                 <Switch
-                  checked={true} // TODO: Connect to actual rain delay enabled state
+                  checked={rainDelaySettings?.enabled || false}
                   onCheckedChange={(checked) => {
-                    // TODO: Implement rain delay enable/disable
-                    console.log('Rain delay toggled:', checked);
+                    rainDelayMutation.mutate({ enabled: checked });
                   }}
+                  disabled={rainDelayMutation.isPending}
                   data-testid="rain-delay-enabled-switch"
                 />
               </div>
@@ -526,53 +596,97 @@ export default function Dashboard() {
               </CardContent>
             </Card>
 
-            {/* Upcoming Schedules */}
+            {/* Schedule Status */}
             <Card data-testid="upcoming-schedules" className="zone-card">
               <CardHeader>
                 <CardTitle className="flex items-center">
                   <div className="p-2 rounded-lg bg-purple-500/20 border border-purple-500/30 mr-3">
                     <Clock className="w-5 h-5 text-purple-400" />
                   </div>
-                  Upcoming Schedules
+                  Schedule Status
+                  <span className="sr-only" data-testid="schedule-status">Schedule Status</span>
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                {upcomingSchedules.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <Calendar className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                    <p>No upcoming schedules</p>
-                    <Link href="/schedules">
-                      <Button variant="link" className="mt-2">Create a schedule</Button>
-                    </Link>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {upcomingSchedules.map((schedule: any, index: number) => {
-                      const nextRun = new Date(schedule.nextRun);
+              <CardContent className="space-y-4">
+                {/* Currently Running Schedules */}
+                {(() => {
+                  const runningSchedules = backendStatus?.schedules?.filter((s: any) => s?.isRunning) || [];
+                  return runningSchedules.length > 0 && (
+                    <div>
+                      <h4 className="text-sm font-semibold text-primary mb-3 flex items-center">
+                        <div className="w-2 h-2 bg-primary rounded-full pulse-green mr-2" />
+                        Currently Running
+                      </h4>
+                      <div className="space-y-3">
+                        {runningSchedules.map((schedule: any, index: number) => (
+                          <div key={schedule?.id || index} className="p-3 rounded-lg bg-primary/5 border border-primary/20">
+                            <div className="flex items-center justify-between mb-2">
+                              <h5 className="font-medium text-foreground">{schedule?.name || 'Unnamed Schedule'}</h5>
+                              <Badge variant="default" className="bg-primary/20 text-primary">Running</Badge>
+                            </div>
+                            {schedule?.steps && Array.isArray(schedule.steps) && schedule.steps.length > 0 && (
+                              <div className="space-y-1">
+                                <p className="text-xs text-muted-foreground mb-1">Series Timeline:</p>
+                                {schedule.steps.map((step: any, stepIndex: number) => (
+                                  <div key={stepIndex} className="flex items-center text-xs">
+                                    <div className={`w-1.5 h-1.5 rounded-full mr-2 ${
+                                      stepIndex === (schedule?.currentStep || 0) ? 'bg-primary' : 'bg-muted-foreground/30'
+                                    }`} />
+                                    <span className={stepIndex === (schedule?.currentStep || 0) ? 'text-primary font-medium' : 'text-muted-foreground'}>
+                                      Zone {step?.zoneNumber || '?'} • {step?.duration || '?'}min
+                                      {stepIndex === (schedule?.currentStep || 0) && step?.timeLeft && ` (${step.timeLeft}min left)`}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* Next Upcoming Schedule */}
+                {upcomingSchedules.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-semibold text-muted-foreground mb-3">Next Up</h4>
+                    {(() => {
+                      const schedule = upcomingSchedules[0];
+                      if (!schedule) return null;
+                      
+                      const nextRun = schedule.nextRun ? new Date(schedule.nextRun) : new Date();
                       const hoursUntil = Math.ceil((nextRun.getTime() - Date.now()) / (1000 * 60 * 60));
                       
                       return (
-                        <div key={schedule.id || index} className="flex items-center justify-between p-4 glass-effect rounded-lg border border-border/50 hover:border-primary/30 transition-all duration-200">
-                          <div className="flex items-center space-x-3">
-                            <div className="w-2 h-8 bg-gradient-to-b from-primary to-primary/50 rounded-full" />
+                        <div className="p-3 rounded-lg bg-muted/30 border">
+                          <div className="flex items-center justify-between">
                             <div>
-                              <h4 className="font-medium text-foreground">{schedule.name}</h4>
-                              <p className="text-sm text-muted-foreground">
-                                {schedule.startTime} • {schedule.days?.join(', ')}
+                              <h5 className="font-medium text-foreground">{schedule.name || 'Unnamed Schedule'}</h5>
+                              <p className="text-xs text-muted-foreground">
+                                {schedule.startTime || 'No time set'} • {nextRun.toLocaleDateString()}
+                              </p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-sm font-medium text-primary">
+                                {hoursUntil < 24 ? `${hoursUntil}h` : `${Math.ceil(hoursUntil/24)}d`}
                               </p>
                             </div>
                           </div>
-                          <div className="text-right">
-                            <p className="text-sm font-medium text-primary">
-                              {hoursUntil < 24 ? `${hoursUntil}h` : `${Math.ceil(hoursUntil/24)}d`}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              {nextRun.toLocaleDateString()}
-                            </p>
-                          </div>
                         </div>
                       );
-                    })}
+                    })()}
+                  </div>
+                )}
+
+                {/* No Schedules State */}
+                {upcomingSchedules.length === 0 && (!(backendStatus?.schedules?.some((s: any) => s?.isRunning))) && (
+                  <div className="text-center py-6 text-muted-foreground">
+                    <Calendar className="w-8 h-8 mx-auto mb-3 opacity-50" />
+                    <p className="text-sm">No active or upcoming schedules</p>
+                    <Link href="/schedules">
+                      <Button variant="link" size="sm" className="mt-1">Create a schedule</Button>
+                    </Link>
                   </div>
                 )}
               </CardContent>
