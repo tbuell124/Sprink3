@@ -21,11 +21,13 @@ import {
   Check,
   X,
   Loader,
-  AlertTriangle
+  AlertTriangle,
+  Cloud,
+  CloudRain
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { 
   usePiConnectionTest, 
   usePiConfig, 
@@ -55,6 +57,17 @@ export default function Settings() {
   const [connectionStatus, setConnectionStatus] = useState<'idle' | 'testing' | 'success' | 'error'>('idle');
   const [showTroubleshooting, setShowTroubleshooting] = useState<boolean>(false);
   
+  // Rain delay settings state
+  const [rainDelaySettings, setRainDelaySettings] = useState({
+    enabled: false,
+    zipCode: "",
+    threshold: 20,
+    checkCurrent: true,
+    check12Hour: true,
+    check24Hour: true,
+    weatherApiKey: "",
+  });
+  
   // Pi integration hooks
   const { config: piConfig, updateConfig: updatePiConfig } = usePiConfig();
   const connectionTestMutation = usePiConnectionTest();
@@ -73,6 +86,33 @@ export default function Settings() {
     queryKey: ['/api/status'],
     refetchInterval: 5000,
   });
+
+  // Rain delay settings query
+  const { data: rainDelaySettingsData } = useQuery({
+    queryKey: ['/api/rain-delay-settings'],
+  });
+
+  // Weather data query
+  const { data: weatherData, refetch: refetchWeather } = useQuery({
+    queryKey: ['/api/weather'],
+    enabled: false, // Only fetch when manually triggered
+  });
+
+  // Update rain delay settings when data is fetched
+  useEffect(() => {
+    if (rainDelaySettingsData) {
+      const data = rainDelaySettingsData as any;
+      setRainDelaySettings({
+        enabled: data.enabled,
+        zipCode: data.zipCode,
+        threshold: data.threshold,
+        checkCurrent: data.checkCurrent,
+        check12Hour: data.check12Hour,
+        check24Hour: data.check24Hour,
+        weatherApiKey: data.weatherApiKey || "",
+      });
+    }
+  }, [rainDelaySettingsData]);
 
   const updateZoneMutation = useMutation({
     mutationFn: async ({ zoneId, updates }: { zoneId: string; updates: any }) => {
@@ -137,6 +177,65 @@ export default function Settings() {
       });
     },
   });
+
+  // Rain delay settings mutations
+  const updateRainDelaySettingsMutation = useMutation({
+    mutationFn: async (updates: any) => {
+      return apiRequest('PUT', '/api/rain-delay-settings', updates);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/rain-delay-settings'] });
+      toast({
+        title: "Rain Delay Settings Updated",
+        description: "Settings saved successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.response?.data?.error || "Failed to update rain delay settings",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const checkWeatherMutation = useMutation({
+    mutationFn: async () => {
+      const response = await refetchWeather();
+      return response.data;
+    },
+    onSuccess: () => {
+      toast({
+        title: "Weather Updated",
+        description: "Latest weather data fetched successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Weather Error",
+        description: "Failed to fetch weather data. Check your API key and ZIP code.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Rain delay settings handlers
+  const handleUpdateRainDelaySettings = (updates: any) => {
+    setRainDelaySettings(prev => ({ ...prev, ...updates }));
+    updateRainDelaySettingsMutation.mutate(updates);
+  };
+
+  const handleCheckWeather = () => {
+    if (!rainDelaySettings.weatherApiKey || !rainDelaySettings.zipCode) {
+      toast({
+        title: "Configuration Required",
+        description: "Please enter your OpenWeatherMap API key and ZIP code first.",
+        variant: "destructive",
+      });
+      return;
+    }
+    checkWeatherMutation.mutate();
+  };
 
   // Remove old testConnectionMutation - now using usePiConnectionTest hook
 
@@ -455,6 +554,10 @@ export default function Settings() {
             <TabsTrigger value="disabled" data-testid="tab-disabled">
               Disabled ({disabledZones.length})
             </TabsTrigger>
+            <TabsTrigger value="rain-delay" data-testid="tab-rain-delay">
+              <CloudRain className="w-4 h-4 mr-2" />
+              Rain Delay
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="all">
@@ -503,6 +606,209 @@ export default function Settings() {
               testDuration={testDuration}
               isLoading={testZoneMutation.isPending || stopZoneMutation.isPending}
             />
+          </TabsContent>
+
+          <TabsContent value="rain-delay" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <CloudRain className="w-5 h-5" />
+                  Rain Delay Settings
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Enable Rain Delay */}
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label htmlFor="rain-delay-enabled" className="text-base font-medium">
+                      Enable Automatic Rain Delay
+                    </Label>
+                    <p className="text-sm text-muted-foreground">
+                      Automatically skip watering when rain is predicted
+                    </p>
+                  </div>
+                  <Switch
+                    id="rain-delay-enabled"
+                    checked={rainDelaySettings.enabled}
+                    onCheckedChange={(checked) => handleUpdateRainDelaySettings({ enabled: checked })}
+                    data-testid="switch-rain-delay-enabled"
+                  />
+                </div>
+
+                {/* API Configuration */}
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="weather-api-key">OpenWeatherMap API Key</Label>
+                    <Input
+                      id="weather-api-key"
+                      type="password"
+                      value={rainDelaySettings.weatherApiKey}
+                      onChange={(e) => setRainDelaySettings(prev => ({ ...prev, weatherApiKey: e.target.value }))}
+                      placeholder="Enter your OpenWeatherMap API key"
+                      data-testid="input-weather-api-key"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Get a free API key at{' '}
+                      <a 
+                        href="https://openweathermap.org/api" 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:underline"
+                      >
+                        openweathermap.org
+                      </a>
+                    </p>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="zip-code">ZIP Code</Label>
+                    <Input
+                      id="zip-code"
+                      value={rainDelaySettings.zipCode}
+                      onChange={(e) => setRainDelaySettings(prev => ({ ...prev, zipCode: e.target.value }))}
+                      placeholder="12345"
+                      data-testid="input-zip-code"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="rain-threshold">Rain Probability Threshold (%)</Label>
+                    <Input
+                      id="rain-threshold"
+                      type="number"
+                      min="0"
+                      max="100"
+                      value={rainDelaySettings.threshold}
+                      onChange={(e) => setRainDelaySettings(prev => ({ ...prev, threshold: Number(e.target.value) }))}
+                      data-testid="input-rain-threshold"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Skip watering when rain probability exceeds this percentage
+                    </p>
+                  </div>
+                </div>
+
+                {/* Forecast Options */}
+                <div className="space-y-3">
+                  <Label className="text-base font-medium">Check Rain Forecast</Label>
+                  
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id="check-current"
+                      checked={rainDelaySettings.checkCurrent}
+                      onCheckedChange={(checked) => setRainDelaySettings(prev => ({ ...prev, checkCurrent: checked }))}
+                      data-testid="switch-check-current"
+                    />
+                    <Label htmlFor="check-current">Current Conditions</Label>
+                  </div>
+                  
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id="check-12hour"
+                      checked={rainDelaySettings.check12Hour}
+                      onCheckedChange={(checked) => setRainDelaySettings(prev => ({ ...prev, check12Hour: checked }))}
+                      data-testid="switch-check-12hour"
+                    />
+                    <Label htmlFor="check-12hour">Next 12 Hours</Label>
+                  </div>
+                  
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id="check-24hour"
+                      checked={rainDelaySettings.check24Hour}
+                      onCheckedChange={(checked) => setRainDelaySettings(prev => ({ ...prev, check24Hour: checked }))}
+                      data-testid="switch-check-24hour"
+                    />
+                    <Label htmlFor="check-24hour">Next 24 Hours</Label>
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex space-x-3">
+                  <Button
+                    onClick={() => handleUpdateRainDelaySettings(rainDelaySettings)}
+                    disabled={updateRainDelaySettingsMutation.isPending}
+                    data-testid="button-save-rain-settings"
+                  >
+                    {updateRainDelaySettingsMutation.isPending ? (
+                      <>
+                        <Loader className="w-4 h-4 mr-2 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <Check className="w-4 h-4 mr-2" />
+                        Save Settings
+                      </>
+                    )}
+                  </Button>
+
+                  <Button
+                    variant="outline"
+                    onClick={handleCheckWeather}
+                    disabled={checkWeatherMutation.isPending || !rainDelaySettings.weatherApiKey || !rainDelaySettings.zipCode}
+                    data-testid="button-check-weather"
+                  >
+                    {checkWeatherMutation.isPending ? (
+                      <>
+                        <Loader className="w-4 h-4 mr-2 animate-spin" />
+                        Checking...
+                      </>
+                    ) : (
+                      <>
+                        <Cloud className="w-4 h-4 mr-2" />
+                        Check Weather
+                      </>
+                    )}
+                  </Button>
+                </div>
+
+                {/* Weather Display */}
+                {weatherData && (
+                  <Card className="mt-4">
+                    <CardHeader>
+                      <CardTitle className="text-lg">Current Weather</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div className="text-center">
+                          <p className="text-sm text-muted-foreground">Temperature</p>
+                          <p className="text-lg font-semibold" data-testid="text-temperature">
+                            {(weatherData as any)?.current?.temperature}°F
+                          </p>
+                        </div>
+                        <div className="text-center">
+                          <p className="text-sm text-muted-foreground">Current Rain</p>
+                          <p className="text-lg font-semibold" data-testid="text-current-rain">
+                            {(weatherData as any)?.current?.rainPercent}%
+                          </p>
+                        </div>
+                        <div className="text-center">
+                          <p className="text-sm text-muted-foreground">12hr Forecast</p>
+                          <p className="text-lg font-semibold" data-testid="text-12hr-rain">
+                            {(weatherData as any)?.forecast?.rain12HourPercent}%
+                          </p>
+                        </div>
+                        <div className="text-center">
+                          <p className="text-sm text-muted-foreground">24hr Forecast</p>
+                          <p className="text-lg font-semibold" data-testid="text-24hr-rain">
+                            {(weatherData as any)?.forecast?.rain24HourPercent}%
+                          </p>
+                        </div>
+                      </div>
+                      {(weatherData as any)?.rainDelayActivated && (
+                        <div className="mt-4 p-3 bg-blue-100 dark:bg-blue-900/20 rounded-lg">
+                          <p className="text-sm text-blue-800 dark:text-blue-200 flex items-center">
+                            <CloudRain className="w-4 h-4 mr-2" />
+                            Rain delay has been automatically activated due to weather conditions.
+                          </p>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                )}
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       </div>
