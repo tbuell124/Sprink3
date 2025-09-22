@@ -1,0 +1,48 @@
+Windows PowerShell
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+Install the latest PowerShell for new features and improvements! https://aka.ms/PSWindows
+
+PS C:\Users\tybue> git remote add origin https://github.com/tbuell124/Sprink2
+fatal: not a git repository (or any of the parent directories): .git
+PS C:\Users\tybue> https://github.com/tbuell124/Sprink2.git
+https://github.com/tbuell124/Sprink2.git : The term 'https://github.com/tbuell124/Sprink2.git' is not recognized as
+the name of a cmdlet, function, script file, or operable program. Check the spelling of the name, or if a path was
+included, verify that the path is correct and try again.
+At line:1 char:1
++ https://github.com/tbuell124/Sprink2.git
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (https://github.com/tbuell124/Sprink2.git:String) [], CommandNotFoundExc
+   eption
+    + FullyQualifiedErrorId : CommandNotFoundException
+
+PS C:\Users\tybue> git remote add origin https://github.com/tbuell124/Sprink2.git
+fatal: not a git repository (or any of the parent directories): .git
+PS C:\Users\tybue> git --list
+unknown option: --list
+usage: git [-v | --version] [-h | --help] [-C <path>] [-c <name>=<value>]
+           [--exec-path[=<path>]] [--html-path] [--man-path] [--info-path]
+           [-p | --paginate | -P | --no-pager] [--no-replace-objects] [--no-lazy-fetch]
+           [--no-optional-locks] [--no-advice] [--bare] [--git-dir=<path>]
+           [--work-tree=<path>] [--namespace=<name>] [--config-env=<name>=<envvar>]
+           <command> [<args>]
+PS C:\Users\tybue> * main
+* : The term '*' is not recognized as the name of a cmdlet, function, script file, or operable program. Check the
+spelling of the name, or if a path was included, verify that the path is correct and try again.
+At line:1 char:1
++ * main
++ ~
+    + CategoryInfo          : ObjectNotFound: (*:String) [], CommandNotFoundException
+    + FullyQualifiedErrorId : CommandNotFoundException
+
+PS C:\Users\tybue> cd C:\Users\tybue\Sprink2
+PS C:\Users\tybue\Sprink2> git branch -a
+* (no branch, rebasing main)
+  main
+  replit-agent
+  remotes/origin/HEAD -> origin/main
+  remotes/origin/codex/fix-installation-script-user-requirement
+  remotes/origin/main
+PS C:\Users\tybue\Sprink2> git remote add origin https://github.com/tbuell124/Sprink2.git
+error: remote origin already exists.
+PS C:\Users\tybue\Sprink2>
