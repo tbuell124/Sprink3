@@ -7,7 +7,8 @@ import {
   rainDelaySchema,
   scheduleUpdateSchema,
   insertScheduleSchema,
-  insertZoneSchema
+  insertZoneSchema,
+  rainDelaySettingsUpdateSchema
 } from "@shared/schema";
 import { z } from "zod";
 
@@ -501,6 +502,134 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch rain delay status" });
+    }
+  });
+
+  // Rain Delay Settings
+  app.get("/api/rain-delay-settings", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const settings = await storage.getRainDelaySettings();
+      res.json(settings);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch rain delay settings" });
+    }
+  });
+
+  app.put("/api/rain-delay-settings", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const updates = rainDelaySettingsUpdateSchema.parse(req.body);
+      const settings = await storage.updateRainDelaySettings(updates);
+      res.json(settings);
+    } catch (error) {
+      console.error("Failed to update rain delay settings:", error);
+      res.status(400).json({ error: "Failed to update rain delay settings" });
+    }
+  });
+
+  // Weather API Integration
+  app.get("/api/weather", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const settings = await storage.getRainDelaySettings();
+      
+      if (!settings.weatherApiKey || !settings.zipCode) {
+        return res.status(400).json({ 
+          error: "Weather API key and ZIP code must be configured" 
+        });
+      }
+
+      // OpenWeatherMap API endpoints
+      const currentWeatherUrl = `https://api.openweathermap.org/data/2.5/weather?zip=${settings.zipCode}&appid=${settings.weatherApiKey}&units=imperial`;
+      const forecastUrl = `https://api.openweathermap.org/data/2.5/forecast?zip=${settings.zipCode}&appid=${settings.weatherApiKey}&units=imperial`;
+
+      // Fetch current weather and forecast
+      const [currentResponse, forecastResponse] = await Promise.all([
+        fetch(currentWeatherUrl),
+        fetch(forecastUrl)
+      ]);
+
+      if (!currentResponse.ok || !forecastResponse.ok) {
+        throw new Error("Failed to fetch weather data");
+      }
+
+      const currentData = await currentResponse.json();
+      const forecastData = await forecastResponse.json();
+
+      // Extract precipitation probabilities
+      const currentRainPercent = Math.round((currentData.rain?.['1h'] || 0) * 100 / 5); // Approximate conversion
+      
+      // Get next 12 and 24 hour forecasts
+      const now = Date.now();
+      const next12Hours = forecastData.list.filter((item: any) => {
+        const itemTime = new Date(item.dt * 1000).getTime();
+        return itemTime <= now + (12 * 60 * 60 * 1000);
+      });
+      const next24Hours = forecastData.list.filter((item: any) => {
+        const itemTime = new Date(item.dt * 1000).getTime();
+        return itemTime <= now + (24 * 60 * 60 * 1000);
+      });
+
+      const rain12HourPercent = Math.max(...next12Hours.map((item: any) => Math.round((item.pop || 0) * 100)));
+      const rain24HourPercent = Math.max(...next24Hours.map((item: any) => Math.round((item.pop || 0) * 100)));
+
+      // Update settings with latest weather data
+      await storage.updateRainDelaySettings({
+        lastWeatherCheck: new Date(),
+        currentRainPercent,
+        rain12HourPercent,
+        rain24HourPercent,
+      });
+
+      // Check if rain delay should be activated
+      const shouldActivate = settings.enabled && (
+        (settings.checkCurrent && currentRainPercent >= settings.threshold) ||
+        (settings.check12Hour && rain12HourPercent >= settings.threshold) ||
+        (settings.check24Hour && rain24HourPercent >= settings.threshold)
+      );
+
+      // Auto-activate rain delay if conditions are met
+      if (shouldActivate) {
+        const systemStatus = await storage.getSystemStatus();
+        if (!systemStatus.rainDelayActive) {
+          await storage.updateSystemStatus({
+            rainDelayActive: true,
+            rainDelayEndsAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
+          });
+
+          // Cancel active zones
+          const activeRuns = await storage.getActiveZoneRuns();
+          for (const run of activeRuns) {
+            await storage.cancelZoneRun(run.id);
+          }
+
+          // Create notification
+          await storage.createNotification({
+            userId: req.userId,
+            type: "rain_delay_activated",
+            title: "Automatic Rain Delay Activated",
+            message: `Rain delay automatically activated due to ${Math.max(currentRainPercent, rain12HourPercent, rain24HourPercent)}% rain probability.`,
+            read: 0,
+            relatedZoneId: null,
+            relatedScheduleId: null,
+          });
+        }
+      }
+
+      res.json({
+        current: {
+          temperature: Math.round(currentData.main.temp),
+          description: currentData.weather[0].description,
+          rainPercent: currentRainPercent,
+        },
+        forecast: {
+          rain12HourPercent,
+          rain24HourPercent,
+        },
+        rainDelayActivated: shouldActivate,
+        lastUpdated: new Date().toISOString(),
+      });
+    } catch (error) {
+      console.error("Weather API error:", error);
+      res.status(500).json({ error: "Failed to fetch weather data" });
     }
   });
 
