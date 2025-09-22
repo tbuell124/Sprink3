@@ -5,13 +5,13 @@ set -e
 
 echo "🚿 Installing Raspberry Pi Sprinkler Control Backend..."
 
-# Check if running as expected user (can be any user, not just 'pi')
-CURRENT_USER=$(whoami)
-echo "👤 Running as user: $CURRENT_USER"
+# Target user configuration (defaults to tybuell, override with SPRINKLER_USER env)
+TARGET_USER="${SPRINKLER_USER:-tybuell}"
 
-if [ "$CURRENT_USER" = "root" ]; then
-    echo "⚠️  This script should NOT be run as root for security reasons"
-    echo "   Please run as a regular user (e.g., tybuell, pi, etc.)"
+# Check if running as target user
+if [ "$(id -un)" != "$TARGET_USER" ]; then
+    echo "⚠️  This script should be run as the '$TARGET_USER' user"
+    echo "   Switch to the correct user: sudo su - $TARGET_USER"
     exit 1
 fi
 
@@ -21,7 +21,7 @@ if ! grep -q "Raspberry Pi" /proc/cpuinfo 2>/dev/null; then
     echo "   Continuing anyway (will run in simulation mode)..."
 fi
 
-INSTALL_DIR="/home/$CURRENT_USER/sprinkler-backend"
+INSTALL_DIR="/home/${TARGET_USER}/sprinkler-backend"
 CURRENT_DIR=$(pwd)
 
 echo "📁 Setting up installation directory: $INSTALL_DIR"
@@ -105,7 +105,7 @@ echo "   Logs:    sudo journalctl -u sprinkler.service -f"
 echo ""
 echo "🌐 Test the API:"
 echo "   curl http://localhost:8000/api/status"
-echo "   curl http://localhost:8000/health"
+    echo "   curl http://localhost:8000/health"
 echo ""
 echo "⚡ GPIO Pins configured for sprinkler zones:"
 echo "   Zones 1-16: GPIO pins [12, 16, 20, 21, 26, 19, 13, 6, 5, 11, 9, 10, 22, 27, 17, 4]"

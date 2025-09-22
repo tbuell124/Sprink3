@@ -11,6 +11,44 @@ A modern web-based sprinkler control system built with React, Express, and Postg
 - Git installed
 - Network connectivity
 
+
+## (Optional) RESET
+
+This is the most reliable approach to ensure there are no leftover files.
+
+Stop any running services
+If your sprinkler app is running as a service, stop it first:
+
+sudo systemctl stop sprinkler.service
+
+
+Navigate to the home directory
+
+cd /home/tybuell
+
+
+Delete the existing Sprink folder
+
+rm -rf Sprink
+
+
+This permanently deletes all files in the folder.
+
+Clone the repository fresh
+
+git clone https://github.com/tbuell124/Sprink2.git Sprink
+
+
+Verify the structure
+
+cd Sprink
+ls -la
+
+
+You should see a clean directory with only the files from GitHub.
+
+-----------------------------
+
 ## Deployment Instructions
 
 ### Step 1: Get the Code

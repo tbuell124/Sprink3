@@ -11,46 +11,30 @@ import {
 } from "@shared/schema";
 import { z } from "zod";
 
-// Authentication middleware
+// Development authentication middleware (allows demo mode)
 const requireAuth = async (req: Request, res: Response, next: any) => {
   let userId = req.headers['x-user-id'] as string;
   
-  // If no user ID provided, use the default admin user
+  // Development/demo mode: If no user ID provided, use the default admin user
   if (!userId) {
     try {
-      // Get admin credentials from environment variables
-      const adminUsername = process.env.ADMIN_USERNAME || 'admin';
-      const adminPassword = process.env.ADMIN_PASSWORD;
-      
-      if (!adminPassword) {
-        console.error("ADMIN_PASSWORD environment variable not set");
-        return res.status(500).json({ 
-          error: 'Server configuration error. Please set ADMIN_PASSWORD environment variable.' 
-        });
-      }
-
-      const adminUser = await storage.getUserByUsername(adminUsername);
+      const adminUser = await storage.getUserByUsername('admin');
       if (adminUser) {
         userId = adminUser.id;
       } else {
-        // If no admin user exists, create one with environment variables
-        const adminEmail = process.env.ADMIN_EMAIL || `${adminUsername}@sprinkler.local`;
-        const adminFirstName = process.env.ADMIN_FIRST_NAME || 'Admin';
-        const adminLastName = process.env.ADMIN_LAST_NAME || 'User';
-        
+        // If no admin user exists, create one
         const newAdmin = await storage.createUser({
-          username: adminUsername,
-          email: adminEmail,
-          password: adminPassword, 
-          firstName: adminFirstName,
-          lastName: adminLastName,
+          username: "admin",
+          email: "admin@sprinkler.com",
+          password: "admin123", 
+          firstName: "Demo",
+          lastName: "User",
           role: "admin",
         });
         userId = newAdmin.id;
-        console.log(`Created admin user: ${adminUsername}`);
       }
     } catch (error) {
-      console.error("Failed to get/create admin user:", error);
+      console.error("Failed to get/create demo user:", error);
       return res.status(500).json({ error: 'Server error during authentication' });
     }
   }

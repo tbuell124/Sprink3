@@ -13,6 +13,10 @@
 
 ---
 
+> **User Account Convention**
+>
+> Recent Raspberry Pi OS releases do not include the legacy `pi` account by default. All setup commands, scripts, and systemd configuration files in this repository now assume the primary user is `tybuell`. If you prefer a different account name, set the `SPRINKLER_USER` environment variable before running `install.sh` and update the corresponding paths in the systemd unit file accordingly.
+
 ## 1. Hardware Requirements
 
 ### Recommended Raspberry Pi Models
@@ -79,7 +83,7 @@ Ground   ────→ Relay GND
 3. **Advanced Configuration**:
    ```
    ✓ Enable SSH (use password authentication)
-   ✓ Set username: tybuell (or your preferred username)
+   ✓ Set username: pi
    ✓ Set password: [your-secure-password]
    ✓ Configure wireless LAN (if needed)
    ✓ Set locale settings
@@ -94,7 +98,7 @@ Ground   ────→ Relay GND
 
 1. **Connect via SSH**:
    ```bash
-   ssh tybuell@[PI_IP_ADDRESS]  # Replace 'tybuell' with your username
+   ssh pi@[PI_IP_ADDRESS]
    ```
 
 2. **Update the System**:
