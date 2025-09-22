@@ -17,7 +17,8 @@ import {
   Wifi,
   WifiOff,
   Zap,
-  Timer
+  Timer,
+  Power
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Link } from "wouter";
@@ -335,6 +336,39 @@ export default function Dashboard() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Master System Control */}
+        <Card data-testid="master-control" className="zone-card mobile-card mb-6 md:mb-8">
+          <CardContent className="p-4 md:p-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <div className="p-3 rounded-lg bg-primary/20 border border-primary/30">
+                  <Power className="w-6 h-6 text-primary" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-foreground">Master System Control</h3>
+                  <p className="text-sm text-muted-foreground">
+                    {backendStatus?.masterEnabled ? "System is enabled and operational" : "System is disabled - all zones stopped"}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center space-x-3">
+                <div className={`w-3 h-3 rounded-full ${
+                  backendStatus?.masterEnabled ? 'bg-green-400 pulse-green' : 'bg-red-400 pulse-red'
+                }`} />
+                <Switch
+                  checked={backendStatus?.masterEnabled || false}
+                  onCheckedChange={(checked) => {
+                    // TODO: Implement master enable/disable functionality
+                    console.log('Master control toggled:', checked);
+                  }}
+                  className="data-[state=checked]:bg-primary"
+                  data-testid="master-control-switch"
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
         
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
