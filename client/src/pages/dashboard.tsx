@@ -370,6 +370,103 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
+        {/* Rain Delay Controls */}
+        <Card data-testid="rain-delay-controls" className="zone-card mobile-card mb-6 md:mb-8">
+          <CardHeader className="pb-4">
+            <CardTitle className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className={`p-3 rounded-lg border ${
+                  backendStatus?.rainDelay?.active 
+                    ? 'bg-blue-500/20 border-blue-500/30' 
+                    : 'bg-muted/20 border-muted/30'
+                }`}>
+                  <CloudRain className={`w-6 h-6 ${
+                    backendStatus?.rainDelay?.active ? 'text-blue-400' : 'text-muted-foreground'
+                  }`} />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-foreground">Rain Delay</h3>
+                  <p className="text-sm text-muted-foreground">
+                    {backendStatus?.rainDelay?.active ? "Active - watering suspended" : "Monitoring weather conditions"}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center space-x-2">
+                <div className={`w-3 h-3 rounded-full ${
+                  backendStatus?.rainDelay?.active ? 'bg-blue-400 pulse-blue' : 'bg-gray-400'
+                }`} />
+                <span className="text-sm font-medium">
+                  {backendStatus?.rainDelay?.active ? 'Active' : 'Inactive'}
+                </span>
+              </div>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Enable/Disable Toggle */}
+              <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
+                <div>
+                  <p className="text-sm font-medium">Rain Delay Enabled</p>
+                  <p className="text-xs text-muted-foreground">Monitor weather automatically</p>
+                </div>
+                <Switch
+                  checked={true} // TODO: Connect to actual rain delay enabled state
+                  onCheckedChange={(checked) => {
+                    // TODO: Implement rain delay enable/disable
+                    console.log('Rain delay toggled:', checked);
+                  }}
+                  data-testid="rain-delay-enabled-switch"
+                />
+              </div>
+              
+              {/* Threshold Setting */}
+              <div className="p-3 rounded-lg bg-muted/30">
+                <p className="text-sm font-medium mb-2">Rain Threshold</p>
+                <div className="flex items-center space-x-2">
+                  <Input
+                    type="number"
+                    min="0"
+                    max="100"
+                    defaultValue="20"
+                    className="h-8 text-center"
+                    data-testid="rain-threshold-input"
+                  />
+                  <span className="text-xs text-muted-foreground">%</span>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">Skip when rain probability exceeds this</p>
+              </div>
+              
+              {/* ZIP Code Setting */}
+              <div className="p-3 rounded-lg bg-muted/30">
+                <p className="text-sm font-medium mb-2">Location</p>
+                <Input
+                  type="text"
+                  placeholder="ZIP Code"
+                  defaultValue=""
+                  className="h-8"
+                  data-testid="zip-code-input"
+                />
+                <p className="text-xs text-muted-foreground mt-1">Weather monitoring location</p>
+              </div>
+            </div>
+            
+            {/* Current Status */}
+            {backendStatus?.rainDelay?.active && (
+              <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
+                <div className="flex items-center space-x-2">
+                  <CloudRain className="w-4 h-4 text-blue-400" />
+                  <p className="text-sm font-medium text-blue-400">Rain delay is currently active</p>
+                </div>
+                {backendStatus.rainDelay.endsAt && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Ends at: {new Date(backendStatus.rainDelay.endsAt).toLocaleString()}
+                  </p>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Active Zones & Upcoming Schedules */}
