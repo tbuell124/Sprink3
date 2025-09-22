@@ -56,6 +56,7 @@ export default function Settings() {
   const [piUseHttps, setPiUseHttps] = useState<boolean>(localStorage.getItem('piUseHttps') === 'true');
   const [connectionStatus, setConnectionStatus] = useState<'idle' | 'testing' | 'success' | 'error'>('idle');
   const [showTroubleshooting, setShowTroubleshooting] = useState<boolean>(false);
+  const [customDurations, setCustomDurations] = useState<Record<string, string>>({});
   
   // Rain delay settings state
   const [rainDelaySettings, setRainDelaySettings] = useState({
@@ -554,9 +555,9 @@ export default function Settings() {
             <TabsTrigger value="disabled" data-testid="tab-disabled">
               Disabled ({disabledZones.length})
             </TabsTrigger>
-            <TabsTrigger value="rain-delay" data-testid="tab-rain-delay">
-              <CloudRain className="w-4 h-4 mr-2" />
-              Rain Delay
+            <TabsTrigger value="quick-controls" data-testid="tab-quick-controls">
+              <Zap className="w-4 h-4 mr-2" />
+              Quick Controls
             </TabsTrigger>
           </TabsList>
 
@@ -606,6 +607,109 @@ export default function Settings() {
               testDuration={testDuration}
               isLoading={testZoneMutation.isPending || stopZoneMutation.isPending}
             />
+          </TabsContent>
+
+          <TabsContent value="quick-controls" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Zap className="w-5 h-5" />
+                  Zone Quick Controls
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {typedZones.map((zone) => {
+                    const isActive = zone.isRunning || zone.isActive;
+                    const customDuration = customDurations[zone.id] || "10";
+                    
+                    return (
+                      <div
+                        key={zone.id}
+                        className={`p-4 rounded-lg border transition-all ${
+                          isActive 
+                            ? 'border-primary/50 bg-primary/5' 
+                            : 'border-border/50 hover:border-primary/30'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center space-x-2">
+                            <div className={`w-3 h-3 rounded-full ${
+                              isActive ? 'bg-primary pulse-green' : 'bg-muted-foreground/30'
+                            }`} />
+                            <h4 className="font-medium">{zone.name}</h4>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => setEditingZone(zone)}
+                              data-testid={`edit-zone-${zone.id}`}
+                            >
+                              <Edit className="w-4 h-4" />
+                            </Button>
+                            <Switch
+                              checked={zone.isEnabled}
+                              onCheckedChange={(checked) => handleUpdateZone(zone.id, { isEnabled: checked })}
+                              data-testid={`toggle-zone-${zone.id}`}
+                            />
+                          </div>
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <div className="flex space-x-2">
+                            <Input
+                              type="number"
+                              min="1"
+                              max="720"
+                              value={customDuration}
+                              onChange={(e) => setCustomDurations(prev => ({ ...prev, [zone.id]: e.target.value }))}
+                              className="h-8 text-center flex-1"
+                              placeholder="10"
+                              disabled={!zone.isEnabled || isActive}
+                              data-testid={`duration-input-${zone.id}`}
+                            />
+                            <Button
+                              size="sm"
+                              onClick={() => handleTestZone(zone, parseInt(customDuration) || 10)}
+                              disabled={!zone.isEnabled || isActive || testZoneMutation.isPending}
+                              data-testid={`start-zone-${zone.id}`}
+                            >
+                              <Play className="w-4 h-4 mr-1" />
+                              Start
+                            </Button>
+                          </div>
+                          
+                          <Button
+                            size="sm"
+                            variant={isActive ? "destructive" : "outline"}
+                            className="w-full"
+                            onClick={() => handleStopZone(zone)}
+                            disabled={!zone.isEnabled || !isActive || stopZoneMutation.isPending}
+                            data-testid={`stop-zone-${zone.id}`}
+                          >
+                            <Square className="w-4 h-4 mr-1" />
+                            {isActive ? "Stop" : "Quick Stop"}
+                          </Button>
+                        </div>
+                        
+                        <div className="text-xs text-muted-foreground mt-2">
+                          Zone {zone.zoneNumber} • GPIO {zone.gpioPin}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                
+                {typedZones.length === 0 && (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Zap className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                    <p className="font-medium">No zones configured</p>
+                    <p className="text-sm">Add zones to enable quick controls</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </TabsContent>
 
           <TabsContent value="rain-delay" className="space-y-6">
