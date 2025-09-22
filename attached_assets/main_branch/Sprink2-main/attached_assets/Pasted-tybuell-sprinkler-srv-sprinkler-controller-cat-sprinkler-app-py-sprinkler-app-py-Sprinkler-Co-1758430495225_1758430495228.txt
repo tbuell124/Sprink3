@@ -1,0 +1,343 @@
+tybuell@sprinkler:/srv/sprinkler-controller $ cat sprinkler/app.py
+# sprinkler/app.py
+# Sprinkler Controller API (Tune for Ty's 16 wired GPIOs)
+# - pigpio first (via pigpiod), fallback to RPi.GPIO
+# - Controls only the 16 wired pins by default (override via .env)
+# - Minimal state persisted to /srv/sprinkler-controller/state
+
+import os
+import json
+import time
+from pathlib import Path
+from typing import Dict, List, Optional, Any, Set
+
+from fastapi import FastAPI, HTTPException, Body
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+
+# -------------------------
+# GPIO backends
+# -------------------------
+USE_PIGPIO = False
+PI = None
+pigpio = None
+GPIO = None
+
+try:
+    import pigpio  # type: ignore
+    PI = pigpio.pi()  # connects to local pigpiod
+    if PI is not None and PI.connected:
+        USE_PIGPIO = True
+    else:
+        PI = None
+except Exception:
+    pigpio = None
+    PI = None
+    USE_PIGPIO = False
+
+if not USE_PIGPIO:
+    try:
+        import RPi.GPIO as GPIO  # type: ignore
+        GPIO.setmode(GPIO.BCM)
+        GPIO.setwarnings(False)
+    except Exception:
+        GPIO = None  # no GPIO available (e.g., dev machine)
+
+def effective_backend() -> str:
+    return "pigpio" if USE_PIGPIO else ("RPi.GPIO" if GPIO else "none")
+
+# -------------------------
+# App + CORS
+# -------------------------
+app = FastAPI(title="Sprinkler Controller API", version="1.1.0")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],   # LAN app; safe at home. Lock down if exposing externally.
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# -------------------------
+# Pin policy (defaults to YOUR 16 pins)
+# You can still override in .env:
+#   SPRINKLER_GPIO_ALLOW=12,16,20,21,26,19,13,6,5,11,9,10,22,27,17,4
+#   SPRINKLER_GPIO_DENY=2,3,14,15
+# -------------------------
+DEFAULT_ALLOW = "12,16,20,21,26,19,13,6,5,11,9,10,22,27,17,4"
+ALLOW_ENV = os.getenv("SPRINKLER_GPIO_ALLOW", DEFAULT_ALLOW).strip()
+DENY_ENV  = os.getenv("SPRINKLER_GPIO_DENY", "2,3,14,15").strip()  # avoid I2C/UART by default
+
+def _parse_int_csv(s: str) -> Set[int]:
+    out: Set[int] = set()
+    if not s:
+        return out
+    for tok in s.split(","):
+        tok = tok.strip()
+        if not tok:
+            continue
+        try:
+            out.add(int(tok))
+        except ValueError:
+            pass
+    return out
+
+ALLOW_SET: Set[int] = _parse_int_csv(ALLOW_ENV)
+DENY_SET: Set[int]  = _parse_int_csv(DENY_ENV)
+
+def is_allowed(pin: int) -> bool:
+    return (pin in ALLOW_SET) and (pin not in DENY_SET)
+
+def allowed_pins_sorted() -> List[int]:
+    return sorted(list(ALLOW_SET - DENY_SET))
+
+# -------------------------
+# Simple persisted UI state
+# -------------------------
+STATE_DIR = Path("/srv/sprinkler-controller/state")
+STATE_DIR.mkdir(parents=True, exist_ok=True)
+PINS_META = STATE_DIR / "pins_meta.json"
+RAIN_CFG  = STATE_DIR / "rain_settings.json"
+SCHEDS    = STATE_DIR / "schedule_groups.json"
+
+def _load_json(path: Path, default):
+    try:
+        return json.loads(path.read_text())
+    except Exception:
+        return default
+
+def _save_json(path: Path, data):
+    path.write_text(json.dumps(data, indent=2))
+
+# -------------------------
+# GPIO helpers
+# -------------------------
+def set_mode(pin: int, mode: str):
+    mode = mode.lower()
+    if mode not in ("input", "output"):
+        raise HTTPException(400, f"Invalid mode '{mode}', expected 'input' or 'output'")
+    if USE_PIGPIO and PI is not None:
+        PI.set_mode(pin, pigpio.INPUT if mode == "input" else pigpio.OUTPUT)
+    else:
+        if GPIO is None:
+            raise RuntimeError("No GPIO library available")
+        GPIO.setup(pin, GPIO.IN if mode == "input" else GPIO.OUT)
+
+def set_pin(pin: int, on: bool):
+    if USE_PIGPIO and PI is not None:
+        PI.set_mode(pin, pigpio.OUTPUT)
+        PI.write(pin, 1 if on else 0)
+    else:
+        if GPIO is None:
+            raise RuntimeError("No GPIO library available")
+        GPIO.setup(pin, GPIO.OUT)
+        GPIO.output(pin, GPIO.HIGH if on else GPIO.LOW)
+
+def read_pin(pin: int) -> int:
+    if USE_PIGPIO and PI is not None:
+        return int(PI.read(pin))
+    else:
+        if GPIO is None:
+            raise RuntimeError("No GPIO library available")
+        GPIO.setup(pin, GPIO.IN)
+        return int(GPIO.input(pin))
+
+# -------------------------
+# Models
+# -------------------------
+class ModeBody(BaseModel):
+    mode: str  # "input" | "output"
+
+class ReorderBody(BaseModel):
+    order: List[int]
+
+class RenameBody(BaseModel):
+    name: str
+
+class PinActionBody(BaseModel):
+    state: Optional[str] = None   # "on" | "off"
+    pulse_ms: Optional[int] = None
+
+class PinDTO(BaseModel):
+    id: int
+    name: Optional[str] = None
+    enabled: bool = True
+    state: Optional[str] = None   # "on" | "off"
+
+class RainSettings(BaseModel):
+    enabled: bool
+    amount_mm: Optional[float] = None
+    lockout_until: Optional[str] = None  # ISO string
+
+class ScheduleGroup(BaseModel):
+    id: Optional[int] = None
+    name: str
+    enabled: bool = True
+    items: List[Dict[str, Any]] = []
+
+# -------------------------
+# Helpers for /api/pins
+# -------------------------
+def list_pins_dto() -> List[PinDTO]:
+    meta = _load_json(PINS_META, {})
+    names: Dict[str, str] = meta.get("names", {})
+    order: List[int] = meta.get("order", [])
+    pins = allowed_pins_sorted()
+    # Maintain stored order first, then any newly allowed pins
+    ordered = [p for p in order if p in pins] + [p for p in pins if p not in order]
+    result: List[PinDTO] = []
+    for p in ordered:
+        try:
+            level = read_pin(p)
+        except Exception:
+            level = 0
+        result.append(PinDTO(id=p, name=names.get(str(p)), enabled=True, state="on" if level == 1 else "off"))
+    return result
+
+# -------------------------
+# Health
+# -------------------------
+@app.get("/status")
+def status_root():
+    return {"ok": True}
+
+@app.get("/api/status")
+def status_api():
+    return {
+        "ok": True,
+        "pins": allowed_pins_sorted(),
+        "allow_mode": "list",
+        "deny": sorted(list(DENY_SET)),
+        "backend": effective_backend(),
+        "pigpio_connected": bool(PI is not None and USE_PIGPIO),
+    }
+
+# -------------------------
+# Pins collection
+# -------------------------
+@app.get("/api/pins", response_model=List[PinDTO])
+def pins_get():
+    return list_pins_dto()
+
+@app.post("/api/pins/reorder")
+def pins_reorder(body: ReorderBody):
+    allowed = set(allowed_pins_sorted())
+    new_order = [p for p in body.order if p in allowed]
+    meta = _load_json(PINS_META, {})
+    meta["order"] = new_order
+    _save_json(PINS_META, meta)
+    return {"ok": True}
+
+# -------------------------
+# Pin item endpoints
+# -------------------------
+@app.get("/api/pin/{pin}")
+def pin_read(pin: int):
+    if not is_allowed(pin):
+        raise HTTPException(404, f"Pin {pin} not allowed")
+    return {"pin": pin, "level": read_pin(pin), "backend": effective_backend()}
+
+@app.post("/api/pin/{pin}/mode")
+def pin_mode(pin: int, body: ModeBody):
+    if not is_allowed(pin):
+        raise HTTPException(404, f"Pin {pin} not allowed")
+    set_mode(pin, body.mode)
+    return {"pin": pin, "mode": body.mode, "backend": effective_backend()}
+
+@app.post("/api/pin/{pin}/on")
+def pin_on(pin: int):
+    if not is_allowed(pin):
+        raise HTTPException(404, f"Pin {pin} not allowed")
+    set_pin(pin, True)
+    return {"pin": pin, "state": "on"}
+
+@app.post("/api/pin/{pin}/off")
+def pin_off(pin: int):
+    if not is_allowed(pin):
+        raise HTTPException(404, f"Pin {pin} not allowed")
+    set_pin(pin, False)
+    return {"pin": pin, "state": "off"}
+
+@app.post("/api/pin/{pin}/name")
+def pin_rename(pin: int, body: RenameBody):
+    if not is_allowed(pin):
+        raise HTTPException(404, f"Pin {pin} not allowed")
+    meta = _load_json(PINS_META, {})
+    names = meta.get("names", {})
+    names[str(pin)] = body.name
+    meta["names"] = names
+    _save_json(PINS_META, meta)
+    return {"ok": True, "id": pin, "name": body.name}
+
+# Generic POST for clients that call /api/pin/{pin}
+@app.post("/api/pin/{pin}")
+def pin_action(pin: int, body: Optional[PinActionBody] = Body(default=None)):
+    if not is_allowed(pin):
+        raise HTTPException(404, f"Pin {pin} not allowed")
+    state = (body.state or "").lower() if body and body.state else ""
+    pulse_ms = int(body.pulse_ms) if body and body.pulse_ms else 300
+    if state in ("on", "off"):
+        set_pin(pin, state == "on")
+        return {"ok": True, "pin": pin, "state": state}
+    # Default: pulse
+    set_pin(pin, True)
+    time.sleep(pulse_ms / 1000.0)
+    set_pin(pin, False)
+    return {"ok": True, "pin": pin, "state": "pulsed", "pulse_ms": pulse_ms}
+
+# -------------------------
+# Rain / lockout
+# -------------------------
+@app.get("/api/rain/settings")
+def rain_get():
+    return _load_json(RAIN_CFG, {"enabled": False})
+
+@app.post("/api/rain/settings")
+def rain_set(body: RainSettings):
+    _save_json(RAIN_CFG, json.loads(body.model_json()))
+    return {"ok": True}
+
+# -------------------------
+# Schedule groups (minimal stub)
+# -------------------------
+@app.get("/api/schedule-groups")
+def sched_groups_get():
+    return _load_json(SCHEDS, [])
+
+@app.post("/api/schedule-groups")
+def sched_groups_upsert(group: ScheduleGroup):
+    groups = _load_json(SCHEDS, [])
+    if group.id is None:
+        next_id = (max((g.get("id", 0) for g in groups), default=0) + 1)
+        group.id = next_id
+        groups.append(json.loads(group.model_json()))
+    else:
+        updated = []
+        replaced = False
+        for g in groups:
+            if g.get("id") == group.id:
+                updated.append(json.loads(group.model_json()))
+                replaced = True
+            else:
+                updated.append(g)
+        if not replaced:
+            updated.append(json.loads(group.model_json()))
+        groups = updated
+    _save_json(SCHEDS, groups)
+    return {"ok": True, "id": group.id}
+
+# -------------------------
+# Cleanup on shutdown
+# -------------------------
+@app.on_event("shutdown")
+def on_shutdown():
+    try:
+        if GPIO is not None:
+            GPIO.cleanup()
+    except Exception:
+        pass
+    try:
+        if USE_PIGPIO and PI is not None:
+            PI.stop()
+    except Exception:
+        pass
+tybuell@sprinkler:/srv/sprinkler-controller $ 

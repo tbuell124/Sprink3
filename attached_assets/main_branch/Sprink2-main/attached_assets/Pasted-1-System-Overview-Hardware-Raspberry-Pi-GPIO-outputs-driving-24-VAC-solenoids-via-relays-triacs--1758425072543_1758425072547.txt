@@ -1,0 +1,279 @@
+1) System Overview
+
+Hardware: Raspberry Pi (GPIO outputs driving 24 VAC solenoids via relays/triacs).
+
+Backend: Python + FastAPI (Uvicorn) on port 8000, using pigpio for GPIO. Runs under systemd.
+
+Client: iOS (SwiftUI), local-network control over HTTP(S), optional WebSocket for live state.
+
+Security: Local bearer token (JWT or opaque), stored on-device in Keychain.
+
+Core Jobs:
+
+Manually run zones for X minutes (and see a countdown).
+
+Build repeating schedules (per-day, time(s), per-zone durations).
+
+Apply rain delay (24/48/72h) that cleanly suppresses runs.
+
+One-screen situational awareness (what’s on now, up next, connectivity).
+
+2) Backend (Pi) — Current State & Fixes
+2.1 Observed Behavior
+
+/api/status returns ok, pins, deny, backend, pigpio_connected—but no per-pin mode/state.
+
+Commands “seem to issue a quick on/off pulse,” not a held state. This is almost certainly backend behavior, not the iOS app:
+
+Either the handler sets the pin high then exits and a cleanup resets it,
+
+or the API route toggles instead of set-and-hold,
+
+or another watcher/task flips it back (conflicting state machine).
+
+2.2 GPIO Semantics (Authoritative)
+
+Zone ON (timed): set pin → OUTPUT + HIGH, create a server-side countdown task that turns it LOW at expiry.
+
+Zone OFF (manual): set pin → LOW, cancel any existing timer for that zone.
+
+Single threaded truth: only server owns timers; client is purely declarative (“run 12 min”).
+
+No cleanup resets: never call pigpio “cleanup” after a request. Keep daemon up.
+
+2.3 API Contract (Server)
+
+Headers: Authorization: Bearer <token>; Content-Type: application/json
+Port: 8000 (systemd-managed)
+
+GET /api/status →
+
+{
+  "ok": true,
+  "backend": "pigpio",
+  "pigpioConnected": true,
+  "zones": [
+    {"id":1,"name":"Front Lawn","gpioPin":17,"isEnabled":true,"isOn":false,"defaultMinutes":10}
+  ],
+  "activeZoneId": 3,              // null if none
+  "activeRemainingSec": 540,      // null if none
+  "nextRun": {"zoneId":5,"startISO":"2025-09-21T06:30:00Z"},
+  "rainDelay": {"active": false, "until": null},
+  "latencyMs": 12
+}
+
+
+POST /api/zone/{id}/on { "minutes": 12 } → sets/extends timer for that zone; turns others off if single-zone.
+
+POST /api/zone/{id}/off → cancels timer & drives pin LOW.
+
+GET /api/zones / PUT /api/zones → zone metadata + gpio mapping.
+
+GET/POST/PUT/DELETE /api/schedules → full CRUD.
+
+POST /api/rain-delay { "hours": 24 } / DELETE /api/rain-delay
+
+Optional GET /api/pins → { "pin": 17, "mode": "OUTPUT", "value": 1 }[] for diagnostics.
+
+WebSocket /ws → server emits: {type:"zone", id:3, isOn:true, remainingSec:899}, {type:"rain", active:true, until:...} at 1 Hz/edge-trigger.
+
+Errors
+
+{ "ok": false, "code": "TOKEN_EXPIRED|ZONE_DENY|GPIO_BUSY|VALIDATION", "message": "…" }
+
+2.4 Backend Implementation Notes
+
+Timer registry: dict[zoneId] -> asyncio.Task. Cancel/replace on subsequent on calls.
+
+Exclusive control: If valves cannot run concurrently, enforce single active zone policy.
+
+Pigpio usage:
+
+pi.set_mode(pin, pigpio.OUTPUT) once on startup.
+
+pi.write(pin, 1) on ON; pi.write(pin, 0) on OFF.
+
+Do not call global stop()/cleanup on each request.
+
+Persistence: zones & schedules in a tiny SQLite or JSON file (with file-lock).
+
+Rain delay: Guard at the scheduler layer; manual ON may warn or allow (configurable).
+
+Systemd unit (example):
+
+[Unit]
+Description=Sprinkler Controller API
+After=network-online.target pigpiod.service
+
+[Service]
+WorkingDirectory=/srv/sprinkler-controller
+Environment="PYTHONUNBUFFERED=1"
+ExecStart=/srv/sprinkler-controller/.venv/bin/uvicorn sprinkler_service:app --host 0.0.0.0 --port 8000
+Restart=always
+User=sprinkler
+Group=spi
+
+2.5 Operations & Live Debug
+
+Follow logs: sudo journalctl -u sprinkler.service -f -n 200
+
+Service status: sudo systemctl status sprinkler.service
+
+Local probe: curl -s -H "Authorization: Bearer $TOKEN" http://127.0.0.1:8000/api/status | jq
+
+WebSocket sniff: websocat ws://127.0.0.1:8000/ws (if installed)
+
+3) iOS App — Architecture & UX
+3.1 App Structure
+
+SwiftUI + async/await; modules:
+
+Domain (models: Zone, Schedule, RainDelay, SystemStatus)
+
+Networking (APIClient, Auth, WebSocketClient)
+
+Features/Dashboard, Features/Schedules, Features/Settings
+
+Diagnostics (latency pings, logs)
+
+State mgmt: @Observable (or ObservableObject) view models; side-effects isolated.
+
+Storage: Keychain for token; SwiftData/UserDefaults for controller profile, cached zones/schedules.
+
+Discovery: Bonjour (_sprinkler._tcp) → fall back to manual URL entry.
+
+3.2 UX (Dashboard “4-slot”)
+
+LED grid: per-zone state, “Pi Connected”, “Rain Delay”. Tap → Manual control sheet.
+
+Now/Next: show current zone + remaining; next run summary.
+
+Zones list: reorderable; toggle with quick “Run for N min” (editable default).
+
+Rain + Connectivity: set delay (Off/24/48/72h), show end time; show Online/Offline and API latency.
+
+Schedules
+
+Collapsible schedule cards: enabled toggle, weekday chips, start times (multi), per-zone minutes, “skip if rain delay”.
+
+Duplicate, import/export JSON.
+
+Settings
+
+Controller (Auto-discover / manual), token management (paste/QR), zone naming/mapping, diagnostics panel.
+
+3.3 Networking & Reliability
+
+APIClient: idempotent actions with lightweight retry (0.5s→2s jittered, max 3) for network errors; no retry for 4xx.
+
+WebSocket preferred for live timers; fallback to 3–5s polling.
+
+Optimistic UI for toggles with server reconciliation.
+
+Background refresh (BGAppRefresh) for status cache.
+
+3.4 Accessibility & Performance
+
+Dynamic Type; VoiceOver labels for LEDs/toggles; haptics on state changes.
+
+Target cold start → first render < 800 ms; toggle round-trip < 200 ms (WS) / < 500 ms (polling).
+
+4) Security & Compliance
+
+Keychain (kSecAttrAccessibleAfterFirstUnlock) for tokens.
+
+No secrets in logs; scrub query strings.
+
+ATS: prefer HTTPS; if HTTP on LAN, scope the exception to the Pi host only.
+
+Token rotation flow; surface expiry.
+
+No PII; telemetry (if enabled) is purely technical (latency buckets, error codes).
+
+5) Scheduling Engine (Source of Truth = Server)
+
+Server maintains a crontab-like loop (minute tick) that:
+
+Skips if rain delay active.
+
+Starts eligible schedule; sets active zone/timer; prevents overlaps per “single-zone” policy.
+
+Emits events via WS (or marks in /api/status).
+
+Client computes previews from server state but never “drives the clock”.
+
+6) Test Strategy
+
+Backend
+
+Unit: pin state machine; timer start/extend/cancel; rain-delay gating; schedule edge cases.
+
+Integration: API routes with a fake pigpio adapter.
+
+Contract: Schemas validated against JSON fixtures; negative tests for error codes.
+
+iOS
+
+Unit: API decoding, reducers/view-models, retry policies.
+
+Snapshot: Dashboard states (no controller, offline, active run, rain delay on).
+
+UI: Start/Stop zone, create/edit schedule, token rotation.
+
+Perf: Cold start + toggle latency with a mock server.
+
+7) Observability & Diagnostics
+
+Backend: structured logs on each action: {ts, zoneId, action:on/off, minutes, caller, tokenId?, result}.
+
+Client: Diagnostic screen showing last status fetch time, WS state, last 50 log lines, and round-trip latency.
+
+Export logs as .log file for support.
+
+8) Deployment & Ops Checklist
+
+pigpiod enabled at boot; service ordering ensures pigpio before API.
+
+.env (or systemd env) contains token / secrets (never in repo).
+
+Health checks:
+
+GET /api/status must be <150 ms on LAN.
+
+WS connects and ticks once per second.
+
+Backup: zones/schedules JSON/SQLite snapshot on write.
+
+9) Backlog (High → Low)
+
+Fix “pulse instead of hold” by introducing server-side timers and removing any cleanup that resets pins.
+
+Expand /api/status to include per-zone isOn and activeRemainingSec.
+
+Add /ws live updates; reconcile client timers.
+
+Zone mapping UI + PUT /api/zones.
+
+Full schedules CRUD with server authoritative execution.
+
+Rain delay enforcement & countdown in status.
+
+Bonjour + manual profile; token rotation UX.
+
+Diagnostics panel + log export.
+
+Optional HTTPS (self-signed/mTLS) for advanced users.
+
+Optional weather integration → auto rain delay.
+
+10) Answers to Your Specific Issues
+
+“Quick on/off” instead of hold → Backend is toggling or resetting pins. Implement timed tasks that hold HIGH until expiry; never cleanup pins per request.
+
+“How can I pull current pin states?”
+
+Add a /api/pins or extend /api/status to include each zone’s mode and value via pi.get_mode(pin) and pi.read(pin).
+
+“View live commands via SSH”
+
+sudo journalctl -u sprinkler.service -f for live API logs; add debug logs on each route with zone, minutes, and resulting pin value.

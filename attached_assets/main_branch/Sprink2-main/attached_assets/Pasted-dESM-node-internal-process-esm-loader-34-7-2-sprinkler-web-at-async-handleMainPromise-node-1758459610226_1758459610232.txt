@@ -1,0 +1,482 @@
+dESM (node:internal/process/esm_loader:34:7)
+2|sprinkler-web  |     at async handleMainPromise (node:internal/modules/run_main:106:12) {
+2|sprinkler-web  |   code: 'ERR_INVALID_ARG_TYPE'
+2|sprinkler-web  | }
+2|sprinkler-web  | Node.js v18.20.8
+2|sprinkler-web  | > rest-express@1.0.0 dev
+2|sprinkler-web  | > NODE_ENV=development tsx server/index.ts
+2|sprinkler-web  | node:internal/errors:496
+2|sprinkler-web  |     ErrorCaptureStackTrace(err);
+2|sprinkler-web  |     ^
+2|sprinkler-web  | TypeError [ERR_INVALID_ARG_TYPE]: The "paths[0]" argument must be of type string. Received undefined
+2|sprinkler-web  |     at __node_internal_captureLargerStackTrace (node:internal/errors:496:5)
+2|sprinkler-web  |     at new NodeError (node:internal/errors:405:5)
+2|sprinkler-web  |     at validateString (node:internal/validators:162:11)
+2|sprinkler-web  |     at Object.resolve (node:path:1115:7)
+2|sprinkler-web  |     at <anonymous> (/home/tybuell/Sprink/vite.config.ts:24:17)
+2|sprinkler-web  |     at ModuleJob.run (node:internal/modules/esm/module_job:195:25)
+2|sprinkler-web  |     at async ModuleLoader.import (node:internal/modules/esm/loader:337:24)
+2|sprinkler-web  |     at async loadESM (node:internal/process/esm_loader:34:7)
+2|sprinkler-web  |     at async handleMainPromise (node:internal/modules/run_main:106:12) {
+2|sprinkler-web  |   code: 'ERR_INVALID_ARG_TYPE'
+2|sprinkler-web  | }
+2|sprinkler-web  | Node.js v18.20.8
+2|sprinkler-web  | > rest-express@1.0.0 dev
+2|sprinkler-web  | > NODE_ENV=development tsx server/index.ts
+2|sprinkler-web  | node:internal/errors:496
+2|sprinkler-web  |     ErrorCaptureStackTrace(err);
+2|sprinkler-web  |     ^
+2|sprinkler-web  | TypeError [ERR_INVALID_ARG_TYPE]: The "paths[0]" argument must be of type string. Received undefined
+2|sprinkler-web  |     at __node_internal_captureLargerStackTrace (node:internal/errors:496:5)
+2|sprinkler-web  |     at new NodeError (node:internal/errors:405:5)
+2|sprinkler-web  |     at validateString (node:internal/validators:162:11)
+2|sprinkler-web  |     at Object.resolve (node:path:1115:7)
+2|sprinkler-web  |     at <anonymous> (/home/tybuell/Sprink/vite.config.ts:24:17)
+2|sprinkler-web  |     at ModuleJob.run (node:internal/modules/esm/module_job:195:25)
+2|sprinkler-web  |     at async ModuleLoader.import (node:internal/modules/esm/loader:337:24)
+2|sprinkler-web  |     at async loadESM (node:internal/process/esm_loader:34:7)
+2|sprinkler-web  |     at async handleMainPromise (node:internal/modules/run_main:106:12) {
+2|sprinkler-web  |   code: 'ERR_INVALID_ARG_TYPE'
+2|sprinkler-web  | }
+2|sprinkler-web  | Node.js v18.20.8
+2|sprinkler-web  | > rest-express@1.0.0 dev
+2|sprinkler-web  | > NODE_ENV=development tsx server/index.ts
+2|sprinkler-web  | node:internal/errors:496
+2|sprinkler-web  |     ErrorCaptureStackTrace(err);
+2|sprinkler-web  |     ^
+2|sprinkler-web  | TypeError [ERR_INVALID_ARG_TYPE]: The "paths[0]" argument must be of type string. Received undefined
+2|sprinkler-web  |     at __node_internal_captureLargerStackTrace (node:internal/errors:496:5)
+2|sprinkler-web  |     at new NodeError (node:internal/errors:405:5)
+2|sprinkler-web  |     at validateString (node:internal/validators:162:11)
+2|sprinkler-web  |     at Object.resolve (node:path:1115:7)
+2|sprinkler-web  |     at <anonymous> (/home/tybuell/Sprink/vite.config.ts:24:17)
+2|sprinkler-web  |     at ModuleJob.run (node:internal/modules/esm/module_job:195:25)
+2|sprinkler-web  |     at async ModuleLoader.import (node:internal/modules/esm/loader:337:24)
+2|sprinkler-web  |     at async loadESM (node:internal/process/esm_loader:34:7)
+2|sprinkler-web  |     at async handleMainPromise (node:internal/modules/run_main:106:12) {
+2|sprinkler-web  |   code: 'ERR_INVALID_ARG_TYPE'
+2|sprinkler-web  | }
+2|sprinkler-web  | Node.js v18.20.8
+2|sprinkler-web  | > rest-express@1.0.0 dev
+2|sprinkler-web  | > NODE_ENV=development tsx server/index.ts
+2|sprinkler-web  | node:internal/errors:496
+2|sprinkler-web  |     ErrorCaptureStackTrace(err);
+2|sprinkler-web  |     ^
+2|sprinkler-web  | TypeError [ERR_INVALID_ARG_TYPE]: The "paths[0]" argument must be of type string. Received undefined
+2|sprinkler-web  |     at __node_internal_captureLargerStackTrace (node:internal/errors:496:5)
+2|sprinkler-web  |     at new NodeError (node:internal/errors:405:5)
+2|sprinkler-web  |     at validateString (node:internal/validators:162:11)
+2|sprinkler-web  |     at Object.resolve (node:path:1115:7)
+2|sprinkler-web  |     at <anonymous> (/home/tybuell/Sprink/vite.config.ts:24:17)
+2|sprinkler-web  |     at ModuleJob.run (node:internal/modules/esm/module_job:195:25)
+2|sprinkler-web  |     at async ModuleLoader.import (node:internal/modules/esm/loader:337:24)
+2|sprinkler-web  |     at async loadESM (node:internal/process/esm_loader:34:7)
+2|sprinkler-web  |     at async handleMainPromise (node:internal/modules/run_main:106:12) {
+2|sprinkler-web  |   code: 'ERR_INVALID_ARG_TYPE'
+2|sprinkler-web  | }
+2|sprinkler-web  | Node.js v18.20.8
+2|sprinkler-web  | > rest-express@1.0.0 dev
+2|sprinkler-web  | > NODE_ENV=development tsx server/index.ts
+2|sprinkler-web  | node:internal/errors:496
+2|sprinkler-web  |     ErrorCaptureStackTrace(err);
+2|sprinkler-web  |     ^
+2|sprinkler-web  | TypeError [ERR_INVALID_ARG_TYPE]: The "paths[0]" argument must be of type string. Received undefined
+2|sprinkler-web  |     at __node_internal_captureLargerStackTrace (node:internal/errors:496:5)
+2|sprinkler-web  |     at new NodeError (node:internal/errors:405:5)
+2|sprinkler-web  |     at validateString (node:internal/validators:162:11)
+2|sprinkler-web  |     at Object.resolve (node:path:1115:7)
+2|sprinkler-web  |     at <anonymous> (/home/tybuell/Sprink/vite.config.ts:24:17)
+2|sprinkler-web  |     at ModuleJob.run (node:internal/modules/esm/module_job:195:25)
+2|sprinkler-web  |     at async ModuleLoader.import (node:internal/modules/esm/loader:337:24)
+2|sprinkler-web  |     at async loadESM (node:internal/process/esm_loader:34:7)
+2|sprinkler-web  |     at async handleMainPromise (node:internal/modules/run_main:106:12) {
+2|sprinkler-web  |   code: 'ERR_INVALID_ARG_TYPE'
+2|sprinkler-web  | }
+2|sprinkler-web  | Node.js v18.20.8
+2|sprinkler-web  | > rest-express@1.0.0 dev
+2|sprinkler-web  | > NODE_ENV=development tsx server/index.ts
+^C
+tybuell@sprinkler:~/Sprink $ pm2 status
+┌────┬────────────────────┬──────────┬──────┬───────────┬──────────┬──────────┐
+│ id │ name               │ mode     │ ↺    │ status    │ cpu      │ memory   │
+├────┼────────────────────┼──────────┼──────┼───────────┼──────────┼──────────┤
+│ 0  │ sprinkler-web      │ fork     │ 21   │ stopped   │ 0%       │ 0b       │
+│ 1  │ sprinkler-web      │ fork     │ 6    │ stopped   │ 0%       │ 0b       │
+│ 2  │ sprinkler-web      │ fork     │ 11   │ online    │ 100%     │ 50.5mb   │
+└────┴────────────────────┴──────────┴──────┴───────────┴──────────┴──────────┘
+tybuell@sprinkler:~/Sprink $ netstat -tulpn | grep LISTEN
+(Not all processes could be identified, non-owned process info
+ will not be shown, you would have to be root to see it all.)
+tcp        0      0 0.0.0.0:8000            0.0.0.0:*               LISTEN      839/python3         
+tcp        0      0 127.0.0.1:631           0.0.0.0:*               LISTEN      -                   
+tcp        0      0 0.0.0.0:80              0.0.0.0:*               LISTEN      -                   
+tcp        0      0 0.0.0.0:22              0.0.0.0:*               LISTEN      -                   
+tcp6       0      0 ::1:631                 :::*                    LISTEN      -                   
+tcp6       0      0 :::80                   :::*                    LISTEN      -                   
+tcp6       0      0 :::22                   :::*                    LISTEN      -                   
+tcp6       0      0 ::1:8888                :::*                    LISTEN      -                   
+tybuell@sprinkler:~/Sprink $ pm2 logs sprinkler-web --lines 20
+[TAILING] Tailing last 20 lines for [sprinkler-web] process (change the value with --lines option)
+/home/tybuell/.pm2/logs/sprinkler-web-error.log last 20 lines:
+0|sprinkle | 
+0|sprinkle | Node.js v18.20.8
+0|sprinkle | node:internal/errors:496
+0|sprinkle |     ErrorCaptureStackTrace(err);
+0|sprinkle |     ^
+0|sprinkle | 
+0|sprinkle | TypeError [ERR_INVALID_ARG_TYPE]: The "paths[0]" argument must be of type string. Received undefined
+0|sprinkle |     at __node_internal_captureLargerStackTrace (node:internal/errors:496:5)
+0|sprinkle |     at new NodeError (node:internal/errors:405:5)
+0|sprinkle |     at validateString (node:internal/validators:162:11)
+0|sprinkle |     at Object.resolve (node:path:1115:7)
+0|sprinkle |     at <anonymous> (/home/tybuell/Sprink/vite.config.ts:24:17)
+0|sprinkle |     at ModuleJob.run (node:internal/modules/esm/module_job:195:25)
+0|sprinkle |     at async ModuleLoader.import (node:internal/modules/esm/loader:337:24)
+0|sprinkle |     at async loadESM (node:internal/process/esm_loader:34:7)
+0|sprinkle |     at async handleMainPromise (node:internal/modules/run_main:106:12) {
+0|sprinkle |   code: 'ERR_INVALID_ARG_TYPE'
+0|sprinkle | }
+0|sprinkle | 
+0|sprinkle | Node.js v18.20.8
+
+/home/tybuell/.pm2/logs/sprinkler-web-out.log last 20 lines:
+0|sprinkle | 
+0|sprinkle | > rest-express@1.0.0 dev
+0|sprinkle | > NODE_ENV=development tsx server/index.ts
+0|sprinkle | 
+0|sprinkle | 
+0|sprinkle | > rest-express@1.0.0 dev
+0|sprinkle | > NODE_ENV=development tsx server/index.ts
+0|sprinkle | 
+0|sprinkle | 
+0|sprinkle | > rest-express@1.0.0 dev
+0|sprinkle | > NODE_ENV=development tsx server/index.ts
+0|sprinkle | 
+0|sprinkle | 
+0|sprinkle | > rest-express@1.0.0 dev
+0|sprinkle | > NODE_ENV=development tsx server/index.ts
+0|sprinkle | 
+0|sprinkle | 
+0|sprinkle | > rest-express@1.0.0 dev
+0|sprinkle | > NODE_ENV=development tsx server/index.ts
+0|sprinkle | 
+
+2|sprinkler-web  | node:internal/errors:496
+2|sprinkler-web  |     ErrorCaptureStackTrace(err);
+2|sprinkler-web  |     ^
+2|sprinkler-web  | TypeError [ERR_INVALID_ARG_TYPE]: The "paths[0]" argument must be of type string. Received undefined
+2|sprinkler-web  |     at __node_internal_captureLargerStackTrace (node:internal/errors:496:5)
+2|sprinkler-web  |     at new NodeError (node:internal/errors:405:5)
+2|sprinkler-web  |     at validateString (node:internal/validators:162:11)
+2|sprinkler-web  |     at Object.resolve (node:path:1115:7)
+2|sprinkler-web  |     at <anonymous> (/home/tybuell/Sprink/vite.config.ts:24:17)
+2|sprinkler-web  |     at ModuleJob.run (node:internal/modules/esm/module_job:195:25)
+2|sprinkler-web  |     at async ModuleLoader.import (node:internal/modules/esm/loader:337:24)
+2|sprinkler-web  |     at async loadESM (node:internal/process/esm_loader:34:7)
+2|sprinkler-web  |     at async handleMainPromise (node:internal/modules/run_main:106:12) {
+2|sprinkler-web  |   code: 'ERR_INVALID_ARG_TYPE'
+2|sprinkler-web  | }
+2|sprinkler-web  | Node.js v18.20.8
+ps aux | grep node2|sprinkler-web  | > rest-express@1.0.0 dev
+2|sprinkler-web  | > NODE_ENV=development tsx server/index.ts
+^C
+tybuell@sprinkler:~/Sprink $ ps aux | grep node
+root        1052  0.0  0.1   2224  1340 ?        Ss   00:52   0:00 fusermount3 -o rw,nosuid,nodev,fsname=portal,auto_unmount,subtype=portal -- /run/user/1000/doc
+tybuell     4679 10.8  5.1 4822600 48116 ?       Sl   02:18   0:00 node /home/tybuell/Sprink/node_modules/.bin/tsx server/index.ts
+tybuell     4690  158 18.0 21909704 167868 ?     Sl   02:18   0:07 /usr/bin/node --require /home/tybuell/Sprink/node_modules/tsx/dist/preflight.cjs --import file:///home/tybuell/Sprink/node_modules/tsx/dist/loader.mjs server/index.ts
+tybuell     4703  0.0  0.2   6092  2004 pts/1    S+   02:18   0:00 grep --color=auto node
+tybuell@sprinkler:~/Sprink $ netstat -tulpn | grep node
+(Not all processes could be identified, non-owned process info
+ will not be shown, you would have to be root to see it all.)
+tybuell@sprinkler:~/Sprink $ ^C
+tybuell@sprinkler:~/Sprink $ ^C
+tybuell@sprinkler:~/Sprink $ pm2 stop all
+pm2 delete all
+[PM2] Applying action stopProcessId on app [all](ids: [ 0, 1, 2 ])
+[PM2] [sprinkler-web](0) ✓
+[PM2] [sprinkler-web](1) ✓
+[PM2] [sprinkler-web](2) ✓
+┌────┬────────────────────┬──────────┬──────┬───────────┬──────────┬──────────┐
+│ id │ name               │ mode     │ ↺    │ status    │ cpu      │ memory   │
+├────┼────────────────────┼──────────┼──────┼───────────┼──────────┼──────────┤
+│ 0  │ sprinkler-web      │ fork     │ 21   │ stopped   │ 0%       │ 0b       │
+│ 1  │ sprinkler-web      │ fork     │ 6    │ stopped   │ 0%       │ 0b       │
+│ 2  │ sprinkler-web      │ fork     │ 21   │ stopped   │ 0%       │ 0b       │
+└────┴────────────────────┴──────────┴──────┴───────────┴──────────┴──────────┘
+[PM2] Applying action deleteProcessId on app [all](ids: [ 0, 1, 2 ])
+[PM2] [sprinkler-web](0) ✓
+[PM2] [sprinkler-web](1) ✓
+[PM2] [sprinkler-web](2) ✓
+┌────┬────────────────────┬──────────┬──────┬───────────┬──────────┬──────────┐
+│ id │ name               │ mode     │ ↺    │ status    │ cpu      │ memory   │
+└────┴────────────────────┴──────────┴──────┴───────────┴──────────┴──────────┘
+tybuell@sprinkler:~/Sprink $ npm run dev
+
+> rest-express@1.0.0 dev
+> NODE_ENV=development tsx server/index.ts
+
+node:internal/errors:496
+    ErrorCaptureStackTrace(err);
+    ^
+
+TypeError [ERR_INVALID_ARG_TYPE]: The "paths[0]" argument must be of type string. Received undefined
+    at __node_internal_captureLargerStackTrace (node:internal/errors:496:5)
+    at new NodeError (node:internal/errors:405:5)
+    at validateString (node:internal/validators:162:11)
+    at Object.resolve (node:path:1115:7)
+    at <anonymous> (/home/tybuell/Sprink/vite.config.ts:24:17)
+    at ModuleJob.run (node:internal/modules/esm/module_job:195:25)
+    at async ModuleLoader.import (node:internal/modules/esm/loader:337:24)
+    at async loadESM (node:internal/process/esm_loader:34:7)
+    at async handleMainPromise (node:internal/modules/run_main:106:12) {
+  code: 'ERR_INVALID_ARG_TYPE'
+}
+
+Node.js v18.20.8
+tybuell@sprinkler:~/Sprink $ cat > run-local.js << 'EOF'
+const { spawn } = require('child_process');
+process.env.NODE_ENV = 'development';
+const server = spawn('node', ['--loader', 'tsx/esm', 'server/index.ts'], {
+  stdio: 'inherit',
+  env: { ...process.env, PORT: '5000' }
+});
+server.on('close', (code) => {
+  console.log(`Server exited with code ${code}`);
+});
+EOF
+tybuell@sprinkler:~/Sprink $ node run-local.js
+file:///home/tybuell/Sprink/run-local.js:1
+const { spawn } = require('child_process');
+                  ^
+
+ReferenceError: require is not defined in ES module scope, you can use import instead
+This file is being treated as an ES module because it has a '.js' file extension and '/home/tybuell/Sprink/package.json' contains "type": "module". To treat it as a CommonJS script, rename it to use the '.cjs' file extension.
+    at file:///home/tybuell/Sprink/run-local.js:1:19
+    at ModuleJob.run (node:internal/modules/esm/module_job:195:25)
+    at async ModuleLoader.import (node:internal/modules/esm/loader:337:24)
+    at async loadESM (node:internal/process/esm_loader:34:7)
+    at async handleMainPromise (node:internal/modules/run_main:106:12)
+
+Node.js v18.20.8
+tybuell@sprinkler:~/Sprink $ npm install -g http-server
+npm error code EACCES
+npm error syscall mkdir
+npm error path /usr/lib/node_modules/http-server
+npm error errno -13
+npm error [Error: EACCES: permission denied, mkdir '/usr/lib/node_modules/http-server'] {
+npm error   errno: -13,
+npm error   code: 'EACCES',
+npm error   syscall: 'mkdir',
+npm error   path: '/usr/lib/node_modules/http-server'
+npm error }
+npm error
+npm error The operation was rejected by your operating system.
+npm error It is likely you do not have the permissions to access this file as the current user
+npm error
+npm error If you believe this might be a permissions issue, please double-check the
+npm error permissions of the file and its containing directories, or try running
+npm error the command again as root/Administrator.
+npm error A complete log of this run can be found in: /home/tybuell/.npm/_logs/2025-09-21T06_20_09_326Z-debug-0.log
+tybuell@sprinkler:~/Sprink $ http-server dist/public -p 5000 -a 0.0.0.0
+-bash: http-server: command not found
+tybuell@sprinkler:~/Sprink $ cd dist/public
+tybuell@sprinkler:~/Sprink/dist/public $ python3 -m http.server 5000 --bind 0.0.0.0
+Serving HTTP on 0.0.0.0 port 5000 (http://0.0.0.0:5000/) ...
+192.168.1.224 - - [21/Sep/2025 02:21:46] "GET / HTTP/1.1" 200 -
+192.168.1.224 - - [21/Sep/2025 02:21:46] "GET /assets/index-BabJXFp1.js HTTP/1.1" 200 -
+192.168.1.224 - - [21/Sep/2025 02:21:46] "GET /assets/index-DSV-EZ5C.css HTTP/1.1" 200 -
+192.168.1.224 - - [21/Sep/2025 02:21:47] code 404, message File not found
+192.168.1.224 - - [21/Sep/2025 02:21:47] code 404, message File not found
+192.168.1.224 - - [21/Sep/2025 02:21:47] "GET /api/status HTTP/1.1" 404 -
+192.168.1.224 - - [21/Sep/2025 02:21:47] "GET /api/zones HTTP/1.1" 404 -
+192.168.1.224 - - [21/Sep/2025 02:21:48] code 404, message File not found
+192.168.1.224 - - [21/Sep/2025 02:21:48] "GET /favicon.ico HTTP/1.1" 404 -
+192.168.1.224 - - [21/Sep/2025 02:21:53] code 404, message File not found
+192.168.1.224 - - [21/Sep/2025 02:21:53] "GET /api/status HTTP/1.1" 404 -
+192.168.1.224 - - [21/Sep/2025 02:21:58] code 404, message File not found
+192.168.1.224 - - [21/Sep/2025 02:21:58] "GET /api/zones HTTP/1.1" 404 -
+192.168.1.224 - - [21/Sep/2025 02:21:58] code 404, message File not found
+192.168.1.224 - - [21/Sep/2025 02:21:58] "GET /api/status HTTP/1.1" 404 -
+192.168.1.196 - - [21/Sep/2025 02:22:03] "GET / HTTP/1.1" 200 -
+192.168.1.196 - - [21/Sep/2025 02:22:03] "GET /assets/index-BabJXFp1.js HTTP/1.1" 200 -
+192.168.1.196 - - [21/Sep/2025 02:22:03] "GET /assets/index-DSV-EZ5C.css HTTP/1.1" 200 -
+192.168.1.224 - - [21/Sep/2025 02:22:03] code 404, message File not found
+192.168.1.224 - - [21/Sep/2025 02:22:03] "GET /api/status HTTP/1.1" 404 -
+192.168.1.196 - - [21/Sep/2025 02:22:04] code 404, message File not found
+192.168.1.196 - - [21/Sep/2025 02:22:04] "GET /favicon.ico HTTP/1.1" 404 -
+192.168.1.196 - - [21/Sep/2025 02:22:05] code 404, message File not found
+192.168.1.196 - - [21/Sep/2025 02:22:05] "GET /api/status HTTP/1.1" 404 -
+192.168.1.196 - - [21/Sep/2025 02:22:05] code 404, message File not found
+192.168.1.196 - - [21/Sep/2025 02:22:05] "GET /api/zones HTTP/1.1" 404 -
+192.168.1.224 - - [21/Sep/2025 02:22:08] code 404, message File not found
+192.168.1.224 - - [21/Sep/2025 02:22:08] "GET /api/zones HTTP/1.1" 404 -
+192.168.1.224 - - [21/Sep/2025 02:22:08] code 404, message File not found
+192.168.1.224 - - [21/Sep/2025 02:22:08] "GET /api/status HTTP/1.1" 404 -
+192.168.1.196 - - [21/Sep/2025 02:22:09] code 404, message File not found
+192.168.1.196 - - [21/Sep/2025 02:22:09] "GET /api/status HTTP/1.1" 404 -
+192.168.1.196 - - [21/Sep/2025 02:22:09] code 404, message File not found
+192.168.1.196 - - [21/Sep/2025 02:22:09] "GET /api/zones HTTP/1.1" 404 -
+192.168.1.224 - - [21/Sep/2025 02:22:13] code 404, message File not found
+192.168.1.224 - - [21/Sep/2025 02:22:13] "GET /api/status HTTP/1.1" 404 -
+192.168.1.196 - - [21/Sep/2025 02:22:14] code 404, message File not found
+192.168.1.196 - - [21/Sep/2025 02:22:14] "GET /api/status HTTP/1.1" 404 -
+192.168.1.224 - - [21/Sep/2025 02:22:18] code 404, message File not found
+192.168.1.224 - - [21/Sep/2025 02:22:18] "GET /api/zones HTTP/1.1" 404 -
+192.168.1.224 - - [21/Sep/2025 02:22:18] code 404, message File not found
+192.168.1.224 - - [21/Sep/2025 02:22:18] "GET /api/status HTTP/1.1" 404 -
+192.168.1.196 - - [21/Sep/2025 02:22:19] code 404, message File not found
+192.168.1.196 - - [21/Sep/2025 02:22:19] "GET /api/zones HTTP/1.1" 404 -
+192.168.1.196 - - [21/Sep/2025 02:22:19] code 404, message File not found
+192.168.1.196 - - [21/Sep/2025 02:22:19] "GET /api/status HTTP/1.1" 404 -
+192.168.1.224 - - [21/Sep/2025 02:22:23] code 404, message File not found
+192.168.1.224 - - [21/Sep/2025 02:22:23] "GET /api/status HTTP/1.1" 404 -
+192.168.1.196 - - [21/Sep/2025 02:22:24] code 404, message File not found
+192.168.1.196 - - [21/Sep/2025 02:22:24] "GET /api/status HTTP/1.1" 404 -
+192.168.1.224 - - [21/Sep/2025 02:22:28] code 404, message File not found
+192.168.1.224 - - [21/Sep/2025 02:22:28] "GET /api/zones HTTP/1.1" 404 -
+192.168.1.224 - - [21/Sep/2025 02:22:28] code 404, message File not found
+192.168.1.224 - - [21/Sep/2025 02:22:28] "GET /api/status HTTP/1.1" 404 -
+192.168.1.196 - - [21/Sep/2025 02:22:29] code 404, message File not found
+192.168.1.196 - - [21/Sep/2025 02:22:29] "GET /api/zones HTTP/1.1" 404 -
+192.168.1.196 - - [21/Sep/2025 02:22:29] code 404, message File not found
+192.168.1.196 - - [21/Sep/2025 02:22:29] "GET /api/status HTTP/1.1" 404 -
+192.168.1.224 - - [21/Sep/2025 02:22:33] code 404, message File not found
+192.168.1.224 - - [21/Sep/2025 02:22:33] "GET /api/status HTTP/1.1" 404 -
+192.168.1.196 - - [21/Sep/2025 02:22:35] code 404, message File not found
+192.168.1.196 - - [21/Sep/2025 02:22:35] "GET /api/status HTTP/1.1" 404 -
+192.168.1.224 - - [21/Sep/2025 02:22:38] code 404, message File not found
+192.168.1.224 - - [21/Sep/2025 02:22:38] "GET /api/zones HTTP/1.1" 404 -
+192.168.1.224 - - [21/Sep/2025 02:22:38] code 404, message File not found
+192.168.1.224 - - [21/Sep/2025 02:22:38] "GET /api/status HTTP/1.1" 404 -
+192.168.1.196 - - [21/Sep/2025 02:22:39] code 404, message File not found
+192.168.1.196 - - [21/Sep/2025 02:22:39] "GET /api/zones HTTP/1.1" 404 -
+192.168.1.196 - - [21/Sep/2025 02:22:40] code 404, message File not found
+192.168.1.196 - - [21/Sep/2025 02:22:40] "GET /api/status HTTP/1.1" 404 -
+192.168.1.224 - - [21/Sep/2025 02:22:43] code 404, message File not found
+192.168.1.224 - - [21/Sep/2025 02:22:43] "GET /api/status HTTP/1.1" 404 -
+192.168.1.196 - - [21/Sep/2025 02:22:45] code 404, message File not found
+192.168.1.196 - - [21/Sep/2025 02:22:45] "GET /api/status HTTP/1.1" 404 -
+192.168.1.224 - - [21/Sep/2025 02:22:48] code 404, message File not found
+192.168.1.224 - - [21/Sep/2025 02:22:48] "GET /api/zones HTTP/1.1" 404 -
+192.168.1.224 - - [21/Sep/2025 02:22:48] code 404, message File not found
+192.168.1.224 - - [21/Sep/2025 02:22:48] "GET /api/status HTTP/1.1" 404 -
+192.168.1.196 - - [21/Sep/2025 02:22:49] code 404, message File not found
+192.168.1.196 - - [21/Sep/2025 02:22:49] "GET /api/zones HTTP/1.1" 404 -
+192.168.1.196 - - [21/Sep/2025 02:22:50] code 404, message File not found
+192.168.1.196 - - [21/Sep/2025 02:22:50] "GET /api/status HTTP/1.1" 404 -
+192.168.1.224 - - [21/Sep/2025 02:22:53] code 404, message File not found
+192.168.1.224 - - [21/Sep/2025 02:22:53] "GET /api/status HTTP/1.1" 404 -
+192.168.1.196 - - [21/Sep/2025 02:22:55] code 404, message File not found
+192.168.1.196 - - [21/Sep/2025 02:22:55] "GET /api/status HTTP/1.1" 404 -
+192.168.1.224 - - [21/Sep/2025 02:22:58] code 404, message File not found
+192.168.1.224 - - [21/Sep/2025 02:22:58] "GET /api/zones HTTP/1.1" 404 -
+192.168.1.224 - - [21/Sep/2025 02:22:58] code 404, message File not found
+192.168.1.224 - - [21/Sep/2025 02:22:58] "GET /api/status HTTP/1.1" 404 -
+192.168.1.196 - - [21/Sep/2025 02:22:59] code 404, message File not found
+192.168.1.196 - - [21/Sep/2025 02:22:59] "GET /api/zones HTTP/1.1" 404 -
+192.168.1.196 - - [21/Sep/2025 02:23:00] code 404, message File not found
+192.168.1.196 - - [21/Sep/2025 02:23:00] "GET /api/status HTTP/1.1" 404 -
+192.168.1.224 - - [21/Sep/2025 02:23:03] code 404, message File not found
+192.168.1.224 - - [21/Sep/2025 02:23:03] "GET /api/status HTTP/1.1" 404 -
+192.168.1.224 - - [21/Sep/2025 02:23:08] code 404, message File not found
+192.168.1.224 - - [21/Sep/2025 02:23:08] "GET /api/zones HTTP/1.1" 404 -
+192.168.1.224 - - [21/Sep/2025 02:23:08] code 404, message File not found
+192.168.1.224 - - [21/Sep/2025 02:23:08] "GET /api/status HTTP/1.1" 404 -
+^C
+Keyboard interrupt received, exiting.
+tybuell@sprinkler:~/Sprink/dist/public $ cd ~/Sprink
+tybuell@sprinkler:~/Sprink $ sed -i "s/const ipAddress = localStorage.getItem('piIpAddress') || '192.168.1.24';/const ipAddress = localStorage.getItem('piIpAddress') || '127.0.0.1';/" client/src/lib/pi-api.ts
+tybuell@sprinkler:~/Sprink $ npm run build
+
+> rest-express@1.0.0 build
+> vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist
+
+vite v5.4.20 building for production...
+transforming (3) src/main.tsxBrowserslist: browsers data (caniuse-lite) is 11 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+✓ 1721 modules transformed.
+../dist/public/index.html                   1.95 kB │ gzip:   0.74 kB
+../dist/public/assets/index-DSV-EZ5C.css   68.64 kB │ gzip:  12.15 kB
+../dist/public/assets/index-BabJXFp1.js   373.81 kB │ gzip: 116.12 kB
+✓ built in 33.94s
+
+  dist/index.js  38.2kb
+
+⚡ Done in 32ms
+tybuell@sprinkler:~/Sprink $ cd dist/public
+python3 -m http.server 5000 --bind 0.0.0.0
+Serving HTTP on 0.0.0.0 port 5000 (http://0.0.0.0:5000/) ...
+192.168.1.196 - - [21/Sep/2025 02:25:15] code 404, message File not found
+192.168.1.196 - - [21/Sep/2025 02:25:15] "GET /settings HTTP/1.1" 404 -
+^C
+Keyboard interrupt received, exiting.
+tybuell@sprinkler:~/Sprink/dist/public $ python3 -m http.server 5000 --bind 0.0.0.0
+Serving HTTP on 0.0.0.0 port 5000 (http://0.0.0.0:5000/) ...
+^C
+Keyboard interrupt received, exiting.
+tybuell@sprinkler:~/Sprink/dist/public $ cd ~/Sprink
+tybuell@sprinkler:~/Sprink $ grep "127.0.0.1" client/src/lib/pi-api.ts
+  const ipAddress = localStorage.getItem('piIpAddress') || '127.0.0.1';
+tybuell@sprinkler:~/Sprink $ npm run build
+
+> rest-express@1.0.0 build
+> vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist
+
+vite v5.4.20 building for production...
+transforming (3) src/main.tsxBrowserslist: browsers data (caniuse-lite) is 11 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+✓ 1721 modules transformed.
+../dist/public/index.html                   1.95 kB │ gzip:   0.74 kB
+../dist/public/assets/index-DSV-EZ5C.css   68.64 kB │ gzip:  12.15 kB
+../dist/public/assets/index-BabJXFp1.js   373.81 kB │ gzip: 116.12 kB
+✓ built in 35.51s
+
+  dist/index.js  38.2kb
+
+⚡ Done in 33ms
+tybuell@sprinkler:~/Sprink $ cd dist/public
+python3 -m http.server 5000 --bind 0.0.0.0
+Serving HTTP on 0.0.0.0 port 5000 (http://0.0.0.0:5000/) ...
+192.168.1.196 - - [21/Sep/2025 02:28:44] code 404, message File not found
+192.168.1.196 - - [21/Sep/2025 02:28:44] "GET /settings HTTP/1.1" 404 -
+192.168.1.196 - - [21/Sep/2025 02:29:07] "GET / HTTP/1.1" 200 -
+192.168.1.196 - - [21/Sep/2025 02:29:07] "GET /assets/index-BabJXFp1.js HTTP/1.1" 200 -
+192.168.1.196 - - [21/Sep/2025 02:29:07] "GET /assets/index-DSV-EZ5C.css HTTP/1.1" 200 -
+192.168.1.196 - - [21/Sep/2025 02:29:08] code 404, message File not found
+192.168.1.196 - - [21/Sep/2025 02:29:08] "GET /api/status HTTP/1.1" 404 -
+192.168.1.196 - - [21/Sep/2025 02:29:08] code 404, message File not found
+192.168.1.196 - - [21/Sep/2025 02:29:08] "GET /api/zones HTTP/1.1" 404 -
+192.168.1.196 - - [21/Sep/2025 02:29:13] code 404, message File not found
+192.168.1.196 - - [21/Sep/2025 02:29:13] "GET /api/zones HTTP/1.1" 404 -
+192.168.1.196 - - [21/Sep/2025 02:29:13] code 404, message File not found
+192.168.1.196 - - [21/Sep/2025 02:29:13] "GET /api/status HTTP/1.1" 404 -
+192.168.1.196 - - [21/Sep/2025 02:29:29] code 404, message File not found
+192.168.1.196 - - [21/Sep/2025 02:29:29] "GET /api/zones HTTP/1.1" 404 -
+192.168.1.196 - - [21/Sep/2025 02:29:29] code 404, message File not found
+192.168.1.196 - - [21/Sep/2025 02:29:29] "GET /api/schedules HTTP/1.1" 404 -
+192.168.1.196 - - [21/Sep/2025 02:29:59] code 404, message File not found
+192.168.1.196 - - [21/Sep/2025 02:29:59] "GET /api/schedules HTTP/1.1" 404 -
+192.168.1.196 - - [21/Sep/2025 02:30:29] code 404, message File not found
+192.168.1.196 - - [21/Sep/2025 02:30:29] "GET /api/schedules HTTP/1.1" 404 -
+192.168.1.196 - - [21/Sep/2025 02:30:33] code 501, message Unsupported method ('POST')
+192.168.1.196 - - [21/Sep/2025 02:30:33] "POST /api/schedules HTTP/1.1" 501 -
+192.168.1.196 - - [21/Sep/2025 02:30:59] code 404, message File not found
+192.168.1.196 - - [21/Sep/2025 02:30:59] "GET /api/schedules HTTP/1.1" 404 -
+192.168.1.196 - - [21/Sep/2025 02:31:30] code 404, message File not found
+192.168.1.196 - - [21/Sep/2025 02:31:30] "GET /api/schedules HTTP/1.1" 404 -
+192.168.1.196 - - [21/Sep/2025 02:32:00] code 404, message File not found
+192.168.1.196 - - [21/Sep/2025 02:32:00] "GET /api/schedules HTTP/1.1" 404 -
+^C
+Keyboard interrupt received, exiting.
+tybuell@sprinkler:~/Sprink/dist/public $ cd..
+-bash: cd..: command not found
+tybuell@sprinkler:~/Sprink/dist/public $ cd..
+-bash: cd..: command not found
+tybuell@sprinkler:~/Sprink/dist/public $ cd ..
+tybuell@sprinkler:~/Sprink/dist $ cd ..
+tybuell@sprinkler:~/Sprink $ cd ..
+tybuell@sprinkler:~ $ cd /home/pi
+-bash: cd: /home/pi: No such file or directory
+tybuell@sprinkler:~ $ 

@@ -1,0 +1,92 @@
+Primary surfaces: a 4-slot Dashboard, a rich Schedule Editor, and a Settings area.
+
+Realtime behavior: live GPIO state, “currently running / up next” schedules, rain-delay status, and connection health.
+
+Dashboard (4 slots)
+1) LED Status Grid
+
+What you see: a compact square of LEDs, one per allowed GPIO/zone (labelled with friendly names and the GPIO number).
+
+Live state: LEDs flip on/off in real time; a small Pi Connected indicator shows online/last-seen.
+
+Rain banner/chip: surfaces “Rain Delay Active until <time>” when engaged.
+
+Intent: at-a-glance system health + zone states.
+
+2) Schedule Summary
+
+Currently Running: shows schedule name, active step/zone, and remaining time (live countdown).
+
+Up Next: the next schedule and its ETA; hides cleanly when nothing is queued.
+
+Empty/loading/error: deterministic skeletons on load, friendly “Nothing scheduled” empty copy, and actionable retry on error.
+
+3) Pin Controls (Manual)
+
+Collapsible list: each row = Zone name + GPIO badge + toggle + Run control.
+
+Quick run: preset durations (e.g., 1/5/10/15 min) + custom minutes.
+
+State feedback: non-blocking toasts on success/failure; UI always reflects true backend state.
+
+Reorderable (optional): mirrors your preferred manual order independent of schedules.
+
+4) Rain Status & Connectivity
+
+Rain Delay: activate/clear; shows target end time and policy (e.g., ZIP threshold).
+
+Weather fallback: if weather is unavailable, the UI clearly indicates manual-only mode.
+
+Connectivity: inline health (OK / degraded / offline) with last-seen timestamp.
+
+Schedule Management
+Schedule List
+
+Overview: named schedules with enable/disable toggles and next-run info.
+
+Actions: create, duplicate, delete, and reorder (priority determines conflict resolution and execution ordering).
+
+Schedule Editor (detail view)
+
+Basics: schedule name, days of week, start time, and steps (ordered pairs of zone/pin + duration).
+
+Step stack: drag-handle reorder, swipe to duplicate/delete, “Add step” with presets and custom duration.
+
+Cross-midnight support: shows a hint when total runtime overflows into the next day (e.g., “finishes 00:17 next day”).
+
+Validation: prevents overlaps with other enabled schedules; warns on inactive pins or zero/oversized durations.
+
+Draft/save model: edits are staged; backend is only updated on Save. Clear success/failure, with retry on transient issues.
+
+Undo/redo (editor): recover from accidental changes within the session.
+
+Settings
+Pins
+
+Rename zones: friendly names with inline validation (length, uniqueness among active pins).
+
+Active/Inactive: hide unused outputs without deleting; inactive pins are blocked from schedules.
+
+Context: each row shows the physical GPIO for cross-checking wiring.
+
+Controller
+
+Controller host/IP: manual entry with Test Connection (pings /api/status, shows result + round-trip time).
+
+Token & security: (stored in Keychain) not shown raw; errors guide you to fix auth/env issues.
+
+Discovery: Bonjour/mDNS is used when available; manual host remains the fallback.
+
+Rain-Delay Automation
+
+ZIP code + threshold slider: defines when automatic delays should engage based on your policy.
+
+Preview text: explains the current automation rule (“Delays watering when forecast≥X%”).
+
+About & Logs
+
+Build/version: for support and TestFlight feedback.
+
+Last sync: timestamp of last successful backend contact.
+
+Share logs: export non-PII diagnostics for troubleshooting.

@@ -1,0 +1,93 @@
+tybuell@sprinkler:~/Sprink $ pm2 status
+┌────┬────────────────────┬──────────┬──────┬───────────┬──────────┬──────────┐
+│ id │ name               │ mode     │ ↺    │ status    │ cpu      │ memory   │
+├────┼────────────────────┼──────────┼──────┼───────────┼──────────┼──────────┤
+│ 0  │ sprinkler-web      │ fork     │ 21   │ stopped   │ 0%       │ 0b       │
+│ 1  │ sprinkler-web      │ fork     │ 6    │ stopped   │ 0%       │ 0b       │
+│ 2  │ sprinkler-web      │ fork     │ 11   │ online    │ 100%     │ 50.5mb   │
+└────┴────────────────────┴──────────┴──────┴───────────┴──────────┴──────────┘
+tybuell@sprinkler:~/Sprink $ netstat -tulpn | grep LISTEN
+(Not all processes could be identified, non-owned process info
+ will not be shown, you would have to be root to see it all.)
+tcp        0      0 0.0.0.0:8000            0.0.0.0:*               LISTEN      839/python3         
+tcp        0      0 127.0.0.1:631           0.0.0.0:*               LISTEN      -                   
+tcp        0      0 0.0.0.0:80              0.0.0.0:*               LISTEN      -                   
+tcp        0      0 0.0.0.0:22              0.0.0.0:*               LISTEN      -                   
+tcp6       0      0 ::1:631                 :::*                    LISTEN      -                   
+tcp6       0      0 :::80                   :::*                    LISTEN      -                   
+tcp6       0      0 :::22                   :::*                    LISTEN      -                   
+tcp6       0      0 ::1:8888                :::*                    LISTEN      -                   
+tybuell@sprinkler:~/Sprink $ pm2 logs sprinkler-web --lines 20
+[TAILING] Tailing last 20 lines for [sprinkler-web] process (change the value with --lines option)
+/home/tybuell/.pm2/logs/sprinkler-web-error.log last 20 lines:
+0|sprinkle | 
+0|sprinkle | Node.js v18.20.8
+0|sprinkle | node:internal/errors:496
+0|sprinkle |     ErrorCaptureStackTrace(err);
+0|sprinkle |     ^
+0|sprinkle | 
+0|sprinkle | TypeError [ERR_INVALID_ARG_TYPE]: The "paths[0]" argument must be of type string. Received undefined
+0|sprinkle |     at __node_internal_captureLargerStackTrace (node:internal/errors:496:5)
+0|sprinkle |     at new NodeError (node:internal/errors:405:5)
+0|sprinkle |     at validateString (node:internal/validators:162:11)
+0|sprinkle |     at Object.resolve (node:path:1115:7)
+0|sprinkle |     at <anonymous> (/home/tybuell/Sprink/vite.config.ts:24:17)
+0|sprinkle |     at ModuleJob.run (node:internal/modules/esm/module_job:195:25)
+0|sprinkle |     at async ModuleLoader.import (node:internal/modules/esm/loader:337:24)
+0|sprinkle |     at async loadESM (node:internal/process/esm_loader:34:7)
+0|sprinkle |     at async handleMainPromise (node:internal/modules/run_main:106:12) {
+0|sprinkle |   code: 'ERR_INVALID_ARG_TYPE'
+0|sprinkle | }
+0|sprinkle | 
+0|sprinkle | Node.js v18.20.8
+
+/home/tybuell/.pm2/logs/sprinkler-web-out.log last 20 lines:
+0|sprinkle | 
+0|sprinkle | > rest-express@1.0.0 dev
+0|sprinkle | > NODE_ENV=development tsx server/index.ts
+0|sprinkle | 
+0|sprinkle | 
+0|sprinkle | > rest-express@1.0.0 dev
+0|sprinkle | > NODE_ENV=development tsx server/index.ts
+0|sprinkle | 
+0|sprinkle | 
+0|sprinkle | > rest-express@1.0.0 dev
+0|sprinkle | > NODE_ENV=development tsx server/index.ts
+0|sprinkle | 
+0|sprinkle | 
+0|sprinkle | > rest-express@1.0.0 dev
+0|sprinkle | > NODE_ENV=development tsx server/index.ts
+0|sprinkle | 
+0|sprinkle | 
+0|sprinkle | > rest-express@1.0.0 dev
+0|sprinkle | > NODE_ENV=development tsx server/index.ts
+0|sprinkle | 
+
+2|sprinkler-web  | node:internal/errors:496
+2|sprinkler-web  |     ErrorCaptureStackTrace(err);
+2|sprinkler-web  |     ^
+2|sprinkler-web  | TypeError [ERR_INVALID_ARG_TYPE]: The "paths[0]" argument must be of type string. Received undefined
+2|sprinkler-web  |     at __node_internal_captureLargerStackTrace (node:internal/errors:496:5)
+2|sprinkler-web  |     at new NodeError (node:internal/errors:405:5)
+2|sprinkler-web  |     at validateString (node:internal/validators:162:11)
+2|sprinkler-web  |     at Object.resolve (node:path:1115:7)
+2|sprinkler-web  |     at <anonymous> (/home/tybuell/Sprink/vite.config.ts:24:17)
+2|sprinkler-web  |     at ModuleJob.run (node:internal/modules/esm/module_job:195:25)
+2|sprinkler-web  |     at async ModuleLoader.import (node:internal/modules/esm/loader:337:24)
+2|sprinkler-web  |     at async loadESM (node:internal/process/esm_loader:34:7)
+2|sprinkler-web  |     at async handleMainPromise (node:internal/modules/run_main:106:12) {
+2|sprinkler-web  |   code: 'ERR_INVALID_ARG_TYPE'
+2|sprinkler-web  | }
+2|sprinkler-web  | Node.js v18.20.8
+ps aux | grep node2|sprinkler-web  | > rest-express@1.0.0 dev
+2|sprinkler-web  | > NODE_ENV=development tsx server/index.ts
+^C
+tybuell@sprinkler:~/Sprink $ ps aux | grep node
+root        1052  0.0  0.1   2224  1340 ?        Ss   00:52   0:00 fusermount3 -o rw,nosuid,nodev,fsname=portal,auto_unmount,subtype=portal -- /run/user/1000/doc
+tybuell     4679 10.8  5.1 4822600 48116 ?       Sl   02:18   0:00 node /home/tybuell/Sprink/node_modules/.bin/tsx server/index.ts
+tybuell     4690  158 18.0 21909704 167868 ?     Sl   02:18   0:07 /usr/bin/node --require /home/tybuell/Sprink/node_modules/tsx/dist/preflight.cjs --import file:///home/tybuell/Sprink/node_modules/tsx/dist/loader.mjs server/index.ts
+tybuell     4703  0.0  0.2   6092  2004 pts/1    S+   02:18   0:00 grep --color=auto node
+tybuell@sprinkler:~/Sprink $ netstat -tulpn | grep node
+(Not all processes could be identified, non-owned process info
+ will not be shown, you would have to be root to see it all.)
+tybuell@sprinkler:~/Sprink $ 

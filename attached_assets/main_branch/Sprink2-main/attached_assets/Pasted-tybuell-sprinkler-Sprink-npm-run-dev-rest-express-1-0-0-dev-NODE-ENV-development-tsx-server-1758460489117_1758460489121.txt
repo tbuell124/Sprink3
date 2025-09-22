@@ -1,0 +1,62 @@
+tybuell@sprinkler:~/Sprink $ npm run dev
+
+> rest-express@1.0.0 dev
+> NODE_ENV=development tsx server/index.ts
+
+ls -la
+node:internal/errors:496
+    ErrorCaptureStackTrace(err);
+    ^
+
+TypeError [ERR_INVALID_ARG_TYPE]: The "paths[0]" argument must be of type string. Received undefined
+    at __node_internal_captureLargerStackTrace (node:internal/errors:496:5)
+    at new NodeError (node:internal/errors:405:5)
+    at validateString (node:internal/validators:162:11)
+    at Object.resolve (node:path:1115:7)
+    at <anonymous> (/home/tybuell/Sprink/vite.config.ts:24:17)
+    at ModuleJob.run (node:internal/modules/esm/module_job:195:25)
+    at async ModuleLoader.import (node:internal/modules/esm/loader:337:24)
+    at async loadESM (node:internal/process/esm_loader:34:7)
+    at async handleMainPromise (node:internal/modules/run_main:106:12) {
+  code: 'ERR_INVALID_ARG_TYPE'
+}
+
+Node.js v18.20.8
+tybuell@sprinkler:~/Sprink $ ls -la
+total 396
+drwxr-xr-x   9 tybuell tybuell   4096 Sep 21 09:12 .
+drwx------  21 tybuell tybuell   4096 Sep 21 09:05 ..
+drwxr-xr-x   2 tybuell tybuell   4096 Sep 21 09:05 attached_assets
+drwxr-xr-x   3 tybuell tybuell   4096 Sep 21 09:05 client
+-rw-r--r--   1 tybuell tybuell    459 Sep 21 09:05 components.json
+drwxr-xr-x   3 tybuell tybuell   4096 Sep 21 09:12 dist
+-rw-r--r--   1 tybuell tybuell    325 Sep 21 09:05 drizzle.config.ts
+-rw-r--r--   1 tybuell tybuell     74 Sep 21 09:08 .env
+drwxr-xr-x   8 tybuell tybuell   4096 Sep 21 09:05 .git
+-rw-r--r--   1 tybuell tybuell     67 Sep 21 09:05 .gitignore
+drwxr-xr-x 346 tybuell tybuell  12288 Sep 21 09:08 node_modules
+-rw-r--r--   1 tybuell tybuell   3697 Sep 21 09:05 package.json
+-rw-r--r--   1 tybuell tybuell 308739 Sep 21 09:08 package-lock.json
+-rw-r--r--   1 tybuell tybuell     80 Sep 21 09:05 postcss.config.js
+-rw-r--r--   1 tybuell tybuell    991 Sep 21 09:05 .replit
+-rw-r--r--   1 tybuell tybuell   4534 Sep 21 09:05 replit.md
+drwxr-xr-x   2 tybuell tybuell   4096 Sep 21 09:05 server
+drwxr-xr-x   2 tybuell tybuell   4096 Sep 21 09:05 shared
+-rw-r--r--   1 tybuell tybuell   2755 Sep 21 09:05 tailwind.config.ts
+-rw-r--r--   1 tybuell tybuell    657 Sep 21 09:05 tsconfig.json
+-rw-r--r--   1 tybuell tybuell   1080 Sep 21 09:05 vite.config.ts
+tybuell@sprinkler:~/Sprink $ cat package.json | grep -A 10 -B 2 "scripts"
+  "type": "module",
+  "license": "MIT",
+  "scripts": {
+    "dev": "NODE_ENV=development tsx server/index.ts",
+    "build": "vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist",
+    "start": "NODE_ENV=production node dist/index.js",
+    "check": "tsc",
+    "db:push": "drizzle-kit push"
+  },
+  "dependencies": {
+    "@hookform/resolvers": "^3.10.0",
+    "@jridgewell/trace-mapping": "^0.3.25",
+    "@neondatabase/serverless": "^0.10.4",
+tybuell@sprinkler:~/Sprink $ 
