@@ -109,7 +109,7 @@ export default function Settings() {
         checkCurrent: data.checkCurrent,
         check12Hour: data.check12Hour,
         check24Hour: data.check24Hour,
-        weatherApiKey: data.weatherApiKey || "",
+        weatherApiKey: "", // Don't populate from server for security
       });
     }
   }, [rainDelaySettingsData]);

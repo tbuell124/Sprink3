@@ -509,7 +509,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/rain-delay-settings", requireAuth, async (req: Request, res: Response) => {
     try {
       const settings = await storage.getRainDelaySettings();
-      res.json(settings);
+      // Don't expose API key to frontend for security
+      const { weatherApiKey, ...safeSettings } = settings;
+      res.json({ 
+        ...safeSettings, 
+        hasApiKey: !!weatherApiKey // Just indicate if key is configured
+      });
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch rain delay settings" });
     }
@@ -519,7 +524,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const updates = rainDelaySettingsUpdateSchema.parse(req.body);
       const settings = await storage.updateRainDelaySettings(updates);
-      res.json(settings);
+      // Don't expose API key to frontend for security
+      const { weatherApiKey, ...safeSettings } = settings;
+      res.json({ 
+        ...safeSettings, 
+        hasApiKey: !!weatherApiKey // Just indicate if key is configured
+      });
     } catch (error) {
       console.error("Failed to update rain delay settings:", error);
       res.status(400).json({ error: "Failed to update rain delay settings" });

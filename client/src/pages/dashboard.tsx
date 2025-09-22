@@ -71,11 +71,19 @@ export default function Dashboard() {
   
   const piDiagnostics = usePiDiagnostics();
   
-  // Fallback to backend API when Pi is not available
+  // Rain delay settings and weather data
+  const { data: rainDelaySettings } = useQuery({
+    queryKey: ['/api/rain-delay-settings'],
+    refetchInterval: 30000, // Refresh every 30 seconds
+  });
+
+  // Weather data is included in rain delay settings
+  const weatherData = (rainDelaySettings as any);
+
+  // Backend API status (always fetch for rain delay info)
   const { data: backendStatus, isLoading: backendStatusLoading } = useQuery<BackendStatusResponse>({
     queryKey: ['/api/status'],
     refetchInterval: 5000,
-    enabled: !piDiagnostics.isOnline, // Only use backend when Pi is offline
   });
 
   const { data: backendZones = [], isLoading: backendZonesLoading } = useQuery({
@@ -672,35 +680,105 @@ export default function Dashboard() {
                   </div>
 
                   {/* Rain Delay Status */}
-                  <div className={`flex items-center justify-between p-4 glass-effect rounded-lg border transition-all duration-200 ${
-                    (piDiagnostics.isOnline ? false : backendStatus?.rainDelay?.active)
+                  <Card className={`transition-all duration-200 ${
+                    backendStatus?.rainDelay?.active
                       ? 'border-blue-500/30 bg-blue-500/5'
-                      : 'border-border/50 bg-muted/20'
+                      : 'border-border/50'
                   }`}>
-                    <div className="flex items-center space-x-3">
-                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center border ${
-                        (piDiagnostics.isOnline ? false : backendStatus?.rainDelay?.active) 
-                          ? "bg-blue-500/20 border-blue-500/30" 
-                          : "bg-muted/30 border-border/50"
-                      }`}>
-                        <CloudRain className={`w-5 h-5 ${
-                          (piDiagnostics.isOnline ? false : backendStatus?.rainDelay?.active) ? "text-blue-400" : "text-muted-foreground"
-                        }`} />
+                    <CardHeader className="pb-3">
+                      <CardTitle className="flex items-center justify-between text-base">
+                        <div className="flex items-center space-x-2">
+                          <CloudRain className={`w-5 h-5 ${
+                            backendStatus?.rainDelay?.active ? "text-blue-400" : "text-muted-foreground"
+                          }`} />
+                          <span>Rain Delay</span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          {/* Enabled LED */}
+                          <div className="flex items-center space-x-1">
+                            <div className={`w-2 h-2 rounded-full ${
+                              (rainDelaySettings as any)?.enabled ? "bg-green-400" : "bg-gray-400"
+                            }`} />
+                            <span className="text-xs text-muted-foreground">Enabled</span>
+                          </div>
+                          {/* Active LED */}
+                          <div className="flex items-center space-x-1">
+                            <div className={`w-2 h-2 rounded-full ${
+                              backendStatus?.rainDelay?.active ? "bg-blue-400" : "bg-gray-400"
+                            }`} />
+                            <span className="text-xs text-muted-foreground">Active</span>
+                          </div>
+                        </div>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                      <div className="space-y-3">
+                        {/* Status and weather info */}
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-sm font-medium" data-testid="text-rain-delay-status">
+                              {backendStatus?.rainDelay?.active ? "Currently Active" : "Inactive"}
+                            </p>
+                            {backendStatus?.rainDelay?.active && backendStatus?.rainDelay?.endsAt && (
+                              <p className="text-xs text-muted-foreground">
+                                Ends: {new Date(backendStatus.rainDelay.endsAt).toLocaleDateString()} at{' '}
+                                {new Date(backendStatus.rainDelay.endsAt).toLocaleTimeString()}
+                              </p>
+                            )}
+                          </div>
+                          <Badge 
+                            variant={backendStatus?.rainDelay?.active ? "secondary" : "outline"}
+                            className={backendStatus?.rainDelay?.active ? "bg-blue-500/20 text-blue-400 border-blue-500/30" : ""}
+                            data-testid="badge-rain-delay-status"
+                          >
+                            {backendStatus?.rainDelay?.active ? "ON" : "OFF"}
+                          </Badge>
+                        </div>
+
+                        {/* Weather data display */}
+                        {(rainDelaySettings as any)?.enabled && (rainDelaySettings as any)?.lastWeatherCheck && (
+                          <div className="pt-2 border-t border-border/50">
+                            <div className="grid grid-cols-3 gap-3 text-center">
+                              <div>
+                                <p className="text-xs text-muted-foreground">Current</p>
+                                <p className="text-sm font-semibold" data-testid="text-current-rain">
+                                  {(rainDelaySettings as any)?.currentRainPercent || 0}%
+                                </p>
+                              </div>
+                              <div>
+                                <p className="text-xs text-muted-foreground">12hr</p>
+                                <p className="text-sm font-semibold" data-testid="text-12hr-rain">
+                                  {(rainDelaySettings as any)?.rain12HourPercent || 0}%
+                                </p>
+                              </div>
+                              <div>
+                                <p className="text-xs text-muted-foreground">24hr</p>
+                                <p className="text-sm font-semibold" data-testid="text-24hr-rain">
+                                  {(rainDelaySettings as any)?.rain24HourPercent || 0}%
+                                </p>
+                              </div>
+                            </div>
+                            <p className="text-xs text-muted-foreground text-center mt-2">
+                              Threshold: {(rainDelaySettings as any)?.threshold || 20}% • 
+                              Last updated: {new Date((rainDelaySettings as any)?.lastWeatherCheck).toLocaleTimeString()}
+                            </p>
+                          </div>
+                        )}
+
+                        {/* Configuration status */}
+                        {!(rainDelaySettings as any)?.enabled && (
+                          <div className="pt-2 border-t border-border/50">
+                            <p className="text-xs text-muted-foreground text-center">
+                              Automatic rain delay is disabled. 
+                              <Link href="/settings" className="text-blue-600 hover:underline ml-1">
+                                Configure in Settings
+                              </Link>
+                            </p>
+                          </div>
+                        )}
                       </div>
-                      <div>
-                        <p className="text-sm font-medium text-foreground">Rain Delay</p>
-                        <p className="text-xs text-muted-foreground">
-                          {(piDiagnostics.isOnline ? false : backendStatus?.rainDelay?.active) ? "Active" : "Inactive"}
-                        </p>
-                      </div>
-                    </div>
-                    <Badge 
-                      variant={(piDiagnostics.isOnline ? false : backendStatus?.rainDelay?.active) ? "secondary" : "outline"}
-                      className={(piDiagnostics.isOnline ? false : backendStatus?.rainDelay?.active) ? "bg-blue-500/20 text-blue-400 border-blue-500/30" : ""}
-                    >
-                      {(piDiagnostics.isOnline ? false : backendStatus?.rainDelay?.active) ? "ON" : "OFF"}
-                    </Badge>
-                  </div>
+                    </CardContent>
+                  </Card>
 
                   {/* Last Updated */}
                   <div className="text-xs text-muted-foreground">

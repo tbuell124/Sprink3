@@ -1,6 +1,7 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { storage } from "./storage";
 
 const app = express();
 app.use(express.json());
@@ -68,4 +69,118 @@ app.use((req, res, next) => {
   }, () => {
     log(`serving on port ${port}`);
   });
+
+  // Start automatic weather checking interval
+  startWeatherCheckInterval();
 })();
+
+// Automatic weather checking for rain delay
+async function startWeatherCheckInterval() {
+  const checkWeather = async () => {
+    try {
+      // Always check for auto-deactivation first (regardless of settings)
+      const systemStatus = await storage.getSystemStatus();
+      if (systemStatus.rainDelayActive && systemStatus.rainDelayEndsAt && new Date() > systemStatus.rainDelayEndsAt) {
+        await storage.updateSystemStatus({
+          rainDelayActive: false,
+          rainDelayEndsAt: null,
+        });
+        log(`Rain delay auto-deactivated: expired`);
+      }
+
+      const settings = await storage.getRainDelaySettings();
+      
+      if (!settings.enabled || !settings.weatherApiKey || !settings.zipCode) {
+        return; // Skip weather checking if not properly configured
+      }
+
+      // Check if we should run (don't check too frequently)
+      const lastCheck = settings.lastWeatherCheck;
+      if (lastCheck && (Date.now() - lastCheck.getTime()) < 5 * 60 * 1000) {
+        return; // Skip if checked within last 5 minutes
+      }
+
+      // Fetch weather data
+      const currentWeatherUrl = `https://api.openweathermap.org/data/2.5/weather?zip=${settings.zipCode}&appid=${settings.weatherApiKey}&units=imperial`;
+      const forecastUrl = `https://api.openweathermap.org/data/2.5/forecast?zip=${settings.zipCode}&appid=${settings.weatherApiKey}&units=imperial`;
+
+      const [currentResponse, forecastResponse] = await Promise.all([
+        fetch(currentWeatherUrl),
+        fetch(forecastUrl)
+      ]);
+
+      if (!currentResponse.ok || !forecastResponse.ok) {
+        log(`Weather API error: ${currentResponse.status}, ${forecastResponse.status}`);
+        return;
+      }
+
+      const currentData = await currentResponse.json();
+      const forecastData = await forecastResponse.json();
+
+      // Calculate rain probabilities
+      const currentRainPercent = Math.round((currentData.rain?.['1h'] || 0) * 100 / 5);
+      
+      const now = Date.now();
+      const next12Hours = forecastData.list.filter((item: any) => {
+        const itemTime = new Date(item.dt * 1000).getTime();
+        return itemTime <= now + (12 * 60 * 60 * 1000);
+      });
+      const next24Hours = forecastData.list.filter((item: any) => {
+        const itemTime = new Date(item.dt * 1000).getTime();
+        return itemTime <= now + (24 * 60 * 60 * 1000);
+      });
+
+      const rain12HourPercent = next12Hours.length > 0 ? Math.max(...next12Hours.map((item: any) => Math.round((item.pop || 0) * 100))) : 0;
+      const rain24HourPercent = next24Hours.length > 0 ? Math.max(...next24Hours.map((item: any) => Math.round((item.pop || 0) * 100))) : 0;
+
+      // Update settings with latest weather data
+      await storage.updateRainDelaySettings({
+        lastWeatherCheck: new Date(),
+        currentRainPercent,
+        rain12HourPercent,
+        rain24HourPercent,
+      });
+
+      // Check if rain delay should be activated
+      const shouldActivate = settings.enabled && (
+        (settings.checkCurrent && currentRainPercent >= settings.threshold) ||
+        (settings.check12Hour && rain12HourPercent >= settings.threshold) ||
+        (settings.check24Hour && rain24HourPercent >= settings.threshold)
+      );
+
+      // Auto-activate rain delay if conditions are met
+      if (shouldActivate) {
+        const currentSystemStatus = await storage.getSystemStatus();
+        if (!currentSystemStatus.rainDelayActive) {
+          await storage.updateSystemStatus({
+            rainDelayActive: true,
+            rainDelayEndsAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
+          });
+
+          // Cancel active zones
+          const activeRuns = await storage.getActiveZoneRuns();
+          for (const run of activeRuns) {
+            await storage.cancelZoneRun(run.id);
+          }
+
+          log(`Rain delay auto-activated: ${Math.max(currentRainPercent, rain12HourPercent, rain24HourPercent)}% rain probability`);
+        }
+      }
+    } catch (error) {
+      // Silently handle errors to avoid spamming logs
+      if (error instanceof Error && error.message.includes('fetch')) {
+        // Network error, skip this check
+        return;
+      }
+      log(`Weather check error: ${error}`);
+    }
+  };
+
+  // Check weather every 10 minutes
+  setInterval(checkWeather, 10 * 60 * 1000);
+  
+  // Initial check after 30 seconds (allow server to fully start)
+  setTimeout(checkWeather, 30 * 1000);
+  
+  log('Weather checking interval started');
+}
