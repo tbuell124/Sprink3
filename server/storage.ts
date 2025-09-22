@@ -13,6 +13,8 @@ import {
   type InsertSystemStatus,
   type Notification,
   type InsertNotification,
+  type RainDelaySettings,
+  type InsertRainDelaySettings,
   DEFAULT_GPIO_PINS
 } from "@shared/schema";
 import { randomUUID } from "crypto";
@@ -73,6 +75,10 @@ export interface IStorage {
   createNotification(notification: InsertNotification): Promise<Notification>;
   markNotificationAsRead(id: string): Promise<boolean>;
 
+  // Rain Delay Settings
+  getRainDelaySettings(): Promise<RainDelaySettings>;
+  updateRainDelaySettings(updates: Partial<RainDelaySettings>): Promise<RainDelaySettings>;
+
   // Analytics
   getZoneAnalytics(startDate?: Date, endDate?: Date): Promise<{
     totalRuns: number;
@@ -90,6 +96,7 @@ export class MemStorage implements IStorage {
   private zoneRuns: Map<string, ZoneRun>;
   private systemStatus: SystemStatus;
   private notifications: Map<string, Notification>;
+  private rainDelaySettings: RainDelaySettings;
 
   constructor() {
     this.users = new Map();
@@ -108,6 +115,23 @@ export class MemStorage implements IStorage {
       lastUpdated: new Date(),
       piBackendUrl: null,
       piBackendToken: null,
+    };
+
+    // Initialize rain delay settings
+    this.rainDelaySettings = {
+      id: "rain_delay",
+      enabled: false,
+      zipCode: "",
+      threshold: 20,
+      checkCurrent: true,
+      check12Hour: true,
+      check24Hour: true,
+      lastWeatherCheck: null,
+      currentRainPercent: 0,
+      rain12HourPercent: 0,
+      rain24HourPercent: 0,
+      weatherApiKey: null,
+      updatedAt: new Date(),
     };
 
     // Initialize with sample data
@@ -140,8 +164,6 @@ export class MemStorage implements IStorage {
         name: zoneNames[i] || `Zone ${i + 1}`,
         isEnabled: true,
         defaultDuration: 30,
-        isActive: false,
-        currentRunId: null,
       });
     }
 
@@ -152,7 +174,6 @@ export class MemStorage implements IStorage {
       startTime: "06:00",
       days: ["Mon", "Wed", "Fri"],
       isEnabled: true,
-      lastRun: null,
     });
 
     // Add schedule steps for first 4 zones
@@ -532,6 +553,20 @@ export class MemStorage implements IStorage {
       byZone,
       bySource,
     };
+  }
+
+  // Rain Delay Settings
+  async getRainDelaySettings(): Promise<RainDelaySettings> {
+    return this.rainDelaySettings;
+  }
+
+  async updateRainDelaySettings(updates: Partial<RainDelaySettings>): Promise<RainDelaySettings> {
+    this.rainDelaySettings = {
+      ...this.rainDelaySettings,
+      ...updates,
+      updatedAt: new Date(),
+    };
+    return this.rainDelaySettings;
   }
 }
 
