@@ -5,10 +5,13 @@ set -e
 
 echo "🚿 Installing Raspberry Pi Sprinkler Control Backend..."
 
-# Check if running as pi user
-if [ "$USER" != "pi" ]; then
-    echo "⚠️  This script should be run as the 'pi' user"
-    echo "   Switch to pi user: sudo su - pi"
+# Check if running as expected user (can be any user, not just 'pi')
+CURRENT_USER=$(whoami)
+echo "👤 Running as user: $CURRENT_USER"
+
+if [ "$CURRENT_USER" = "root" ]; then
+    echo "⚠️  This script should NOT be run as root for security reasons"
+    echo "   Please run as a regular user (e.g., tybuell, pi, etc.)"
     exit 1
 fi
 
@@ -18,7 +21,7 @@ if ! grep -q "Raspberry Pi" /proc/cpuinfo 2>/dev/null; then
     echo "   Continuing anyway (will run in simulation mode)..."
 fi
 
-INSTALL_DIR="/home/pi/sprinkler-backend"
+INSTALL_DIR="/home/$CURRENT_USER/sprinkler-backend"
 CURRENT_DIR=$(pwd)
 
 echo "📁 Setting up installation directory: $INSTALL_DIR"

@@ -79,7 +79,7 @@ Ground   ────→ Relay GND
 3. **Advanced Configuration**:
    ```
    ✓ Enable SSH (use password authentication)
-   ✓ Set username: pi
+   ✓ Set username: tybuell (or your preferred username)
    ✓ Set password: [your-secure-password]
    ✓ Configure wireless LAN (if needed)
    ✓ Set locale settings
@@ -94,7 +94,7 @@ Ground   ────→ Relay GND
 
 1. **Connect via SSH**:
    ```bash
-   ssh pi@[PI_IP_ADDRESS]
+   ssh tybuell@[PI_IP_ADDRESS]  # Replace 'tybuell' with your username
    ```
 
 2. **Update the System**:
