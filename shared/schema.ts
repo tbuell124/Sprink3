@@ -66,6 +66,22 @@ export const systemStatus = pgTable("system_status", {
   piBackendToken: text("pi_backend_token"), // Authentication token for Pi backend
 });
 
+export const rainDelaySettings = pgTable("rain_delay_settings", {
+  id: varchar("id").primaryKey().default("rain_delay"),
+  enabled: boolean("enabled").notNull().default(false),
+  zipCode: text("zip_code").notNull().default(""), // User's ZIP code for weather data
+  threshold: integer("threshold").notNull().default(20), // Rain probability % threshold (0-100)
+  checkCurrent: boolean("check_current").notNull().default(true), // Check current conditions
+  check12Hour: boolean("check_12_hour").notNull().default(true), // Check 12-hour forecast
+  check24Hour: boolean("check_24_hour").notNull().default(true), // Check 24-hour forecast
+  lastWeatherCheck: timestamp("last_weather_check"),
+  currentRainPercent: integer("current_rain_percent").default(0),
+  rain12HourPercent: integer("rain_12_hour_percent").default(0),
+  rain24HourPercent: integer("rain_24_hour_percent").default(0),
+  weatherApiKey: text("weather_api_key"), // OpenWeatherMap API key
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
 export const notifications = pgTable("notifications", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull().references(() => users.id),
@@ -111,6 +127,14 @@ export const insertSystemStatusSchema = createInsertSchema(systemStatus).omit({
   lastUpdated: true,
 });
 
+export const insertRainDelaySettingsSchema = createInsertSchema(rainDelaySettings).omit({
+  lastWeatherCheck: true,
+  currentRainPercent: true,
+  rain12HourPercent: true,
+  rain24HourPercent: true,
+  updatedAt: true,
+});
+
 export const insertNotificationSchema = createInsertSchema(notifications).omit({
   id: true,
   createdAt: true,
@@ -134,6 +158,9 @@ export type InsertZoneRun = z.infer<typeof insertZoneRunSchema>;
 
 export type SystemStatus = typeof systemStatus.$inferSelect;
 export type InsertSystemStatus = z.infer<typeof insertSystemStatusSchema>;
+
+export type RainDelaySettings = typeof rainDelaySettings.$inferSelect;
+export type InsertRainDelaySettings = z.infer<typeof insertRainDelaySettingsSchema>;
 
 export type Notification = typeof notifications.$inferSelect;
 export type InsertNotification = z.infer<typeof insertNotificationSchema>;
@@ -215,4 +242,15 @@ export const scheduleUpdateSchema = z.object({
 export const loginSchema = z.object({
   username: z.string().min(1),
   password: z.string().min(1),
+});
+
+// Rain delay settings validation
+export const rainDelaySettingsUpdateSchema = z.object({
+  enabled: z.boolean().optional(),
+  zipCode: z.string().regex(/^\d{5}(-\d{4})?$/, "Invalid ZIP code format").optional(),
+  threshold: z.number().min(0).max(100).optional(),
+  checkCurrent: z.boolean().optional(),
+  check12Hour: z.boolean().optional(),
+  check24Hour: z.boolean().optional(),
+  weatherApiKey: z.string().optional(),
 });
