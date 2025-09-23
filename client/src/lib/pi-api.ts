@@ -50,6 +50,9 @@ export class PiConnectionError extends Error {
   }
 }
 
+// GPIO pin mapping (must match pi-backend/main.py GPIO_PINS)
+const GPIO_PINS = [12, 16, 20, 21, 26, 19, 13, 6, 5, 11, 9, 10, 22, 27, 17, 4];
+
 export class PiApiClient {
   private config: Required<PiConnectionConfig>;
   private baseUrl: string = '';
@@ -106,10 +109,11 @@ export class PiApiClient {
   }
 
   /**
-   * Turn a pin on
+   * Turn a pin on with optional duration
    */
-  async turnPinOn(pin: number): Promise<PiPinControlResponse> {
-    return this.makeRequest(`/api/pin/${pin}/on`, 'POST');
+  async turnPinOn(pin: number, duration?: number): Promise<PiPinControlResponse> {
+    const body = duration ? { duration } : undefined;
+    return this.makeRequest(`/api/pin/${pin}/on`, 'POST', body);
   }
 
   /**
@@ -120,20 +124,31 @@ export class PiApiClient {
   }
 
   /**
-   * Start a zone on the Pi (wrapper for pin control)
+   * Start a zone on the Pi (maps zone number to GPIO pin)
    */
   async startZone(zone: number, duration: number): Promise<PiPinControlResponse> {
-    // For backward compatibility, map zone to pin
-    // Assuming zone numbers start at 1 and correspond to pin numbers
-    return this.turnPinOn(zone);
+    // Map 1-based zone number to GPIO pin number
+    // Zone 1 → GPIO_PINS[0] = 12, Zone 2 → GPIO_PINS[1] = 16, etc.
+    if (zone < 1 || zone > GPIO_PINS.length) {
+      throw new Error(`Invalid zone number ${zone}. Must be between 1 and ${GPIO_PINS.length}`);
+    }
+    
+    const gpioPin = GPIO_PINS[zone - 1]; // Convert 1-based to 0-based index
+    return this.turnPinOn(gpioPin, duration);
   }
 
   /**
-   * Stop a zone on the Pi (wrapper for pin control)
+   * Stop a zone on the Pi (maps zone number to GPIO pin)
    */
   async stopZone(zone: number): Promise<PiPinControlResponse> {
-    // For backward compatibility, map zone to pin
-    return this.turnPinOff(zone);
+    // Map 1-based zone number to GPIO pin number
+    // Zone 1 → GPIO_PINS[0] = 12, Zone 2 → GPIO_PINS[1] = 16, etc.
+    if (zone < 1 || zone > GPIO_PINS.length) {
+      throw new Error(`Invalid zone number ${zone}. Must be between 1 and ${GPIO_PINS.length}`);
+    }
+    
+    const gpioPin = GPIO_PINS[zone - 1]; // Convert 1-based to 0-based index
+    return this.turnPinOff(gpioPin);
   }
 
   /**
