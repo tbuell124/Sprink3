@@ -18,7 +18,10 @@ import {
   WifiOff,
   Zap,
   Timer,
-  Power
+  Power,
+  Thermometer,
+  Cloud,
+  Sun
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Link } from "wouter";
@@ -93,8 +96,12 @@ export default function Dashboard() {
     refetchInterval: 30000, // Refresh every 30 seconds
   });
 
-  // Weather data is included in rain delay settings
-  const weatherData = (rainDelaySettings as any);
+  // Weather data query - fetch detailed weather info
+  const { data: weatherData, isLoading: weatherLoading } = useQuery({
+    queryKey: ['/api/weather'],
+    refetchInterval: 300000, // Refresh every 5 minutes
+    enabled: !!(rainDelaySettings as any)?.weatherApiKey && !!(rainDelaySettings as any)?.zipCode,
+  });
 
   // Backend API status (always fetch for rain delay info)
   const { data: backendStatus, isLoading: backendStatusLoading } = useQuery<BackendStatusResponse>({
@@ -407,6 +414,127 @@ export default function Dashboard() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Weather Tile */}
+        {weatherData && (
+          <Card data-testid="weather-tile" className="zone-card mobile-card mb-6 md:mb-8">
+            <CardHeader className="pb-4">
+              <CardTitle className="flex items-center space-x-3">
+                <div className="p-3 rounded-lg bg-sky-500/20 border border-sky-500/30">
+                  <Cloud className="w-6 h-6 text-sky-400" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-foreground">Weather Conditions</h3>
+                  <p className="text-sm text-muted-foreground capitalize">
+                    {weatherData.current?.description || 'Loading weather data...'}
+                  </p>
+                </div>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Current Weather */}
+                <div className="p-4 rounded-lg bg-gradient-to-br from-sky-500/10 to-blue-500/10 border border-sky-500/20">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center space-x-2">
+                      <Thermometer className="w-5 h-5 text-sky-400" />
+                      <span className="text-sm font-medium text-foreground">Current</span>
+                    </div>
+                    <div className="flex items-center space-x-1">
+                      <CloudRain className="w-4 h-4 text-blue-400" />
+                      <span className="text-xs text-muted-foreground">
+                        {weatherData.current?.rainPercent || 0}%
+                      </span>
+                    </div>
+                  </div>
+                  <div className="text-2xl font-bold text-foreground mb-1">
+                    {weatherData.current?.temperature || '--'}°F
+                  </div>
+                  <div className="text-xs text-muted-foreground capitalize">
+                    {weatherData.current?.description || 'No data'}
+                  </div>
+                </div>
+
+                {/* 12 Hour Forecast */}
+                <div className="p-4 rounded-lg bg-gradient-to-br from-orange-500/10 to-amber-500/10 border border-orange-500/20">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center space-x-2">
+                      <Clock className="w-5 h-5 text-orange-400" />
+                      <span className="text-sm font-medium text-foreground">12 Hour</span>
+                    </div>
+                    <div className="flex items-center space-x-1">
+                      <CloudRain className="w-4 h-4 text-blue-400" />
+                      <span className="text-xs text-muted-foreground">
+                        {weatherData.forecast?.rain12HourPercent || 0}%
+                      </span>
+                    </div>
+                  </div>
+                  <div className="text-lg font-semibold text-foreground mb-1">
+                    Rain Chance
+                  </div>
+                  <Progress 
+                    value={weatherData.forecast?.rain12HourPercent || 0} 
+                    className="h-2 bg-muted"
+                  />
+                </div>
+
+                {/* 24 Hour Forecast */}
+                <div className="p-4 rounded-lg bg-gradient-to-br from-purple-500/10 to-indigo-500/10 border border-purple-500/20">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center space-x-2">
+                      <Calendar className="w-5 h-5 text-purple-400" />
+                      <span className="text-sm font-medium text-foreground">24 Hour</span>
+                    </div>
+                    <div className="flex items-center space-x-1">
+                      <CloudRain className="w-4 h-4 text-blue-400" />
+                      <span className="text-xs text-muted-foreground">
+                        {weatherData.forecast?.rain24HourPercent || 0}%
+                      </span>
+                    </div>
+                  </div>
+                  <div className="text-lg font-semibold text-foreground mb-1">
+                    Rain Chance
+                  </div>
+                  <Progress 
+                    value={weatherData.forecast?.rain24HourPercent || 0} 
+                    className="h-2 bg-muted"
+                  />
+                </div>
+              </div>
+              
+              {/* Last Updated */}
+              {weatherData.lastUpdated && (
+                <div className="mt-4 pt-3 border-t border-border/50 flex items-center justify-center">
+                  <p className="text-xs text-muted-foreground">
+                    Last updated: {new Date(weatherData.lastUpdated).toLocaleString()}
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Weather Loading State */}
+        {weatherLoading && (
+          <Card className="zone-card mobile-card mb-6 md:mb-8">
+            <CardContent className="p-4 md:p-6">
+              <div className="animate-pulse space-y-4">
+                <div className="flex items-center space-x-3">
+                  <div className="w-12 h-12 bg-muted rounded-lg" />
+                  <div className="flex-1 space-y-2">
+                    <div className="w-32 h-4 bg-muted rounded" />
+                    <div className="w-48 h-3 bg-muted rounded" />
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="p-4 bg-muted/30 rounded-lg h-24" />
+                  <div className="p-4 bg-muted/30 rounded-lg h-24" />
+                  <div className="p-4 bg-muted/30 rounded-lg h-24" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Master System Control */}
         <Card data-testid="master-control" className="zone-card mobile-card mb-6 md:mb-8">
