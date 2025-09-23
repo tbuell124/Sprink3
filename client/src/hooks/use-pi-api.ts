@@ -150,28 +150,28 @@ export function usePiPins(options?: { enabled?: boolean; refetchInterval?: numbe
 }
 
 /**
- * Hook to start a zone on the Pi
+ * Hook to start a pin on the Pi
  */
-export function usePiStartZone() {
+export function usePiStartPin() {
   const { toast } = useToast();
   const { piClient } = usePiConfig();
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ zone, duration }: { zone: number; duration: number }): Promise<PiPinControlResponse> => {
-      return await piClient.startZone(zone, duration);
+    mutationFn: async ({ pin, duration }: { pin: number; duration: number }): Promise<PiPinControlResponse> => {
+      return await piClient.startPin(pin, duration);
     },
     onSuccess: (result, variables) => {
       toast({
-        title: "Zone Started",
-        description: `Zone ${variables.zone} started for ${variables.duration} minutes`,
+        title: "Pin Started",
+        description: `Pin ${variables.pin} started for ${variables.duration} minutes`,
       });
-      // Invalidate status and pins to get updated zone state
+      // Invalidate status and pins to get updated pin state
       queryClient.invalidateQueries({ queryKey: ['pi-status'] });
       queryClient.invalidateQueries({ queryKey: ['pi-pins'] });
     },
     onError: (error: any, variables) => {
-      let message = `Failed to start zone ${variables.zone}`;
+      let message = `Failed to start pin ${variables.pin}`;
       
       if (error instanceof PiConnectionError) {
         switch (error.type) {
@@ -190,7 +190,7 @@ export function usePiStartZone() {
       }
 
       toast({
-        title: "Zone Start Failed",
+        title: "Pin Start Failed",
         description: message,
         variant: "destructive",
       });
@@ -199,28 +199,28 @@ export function usePiStartZone() {
 }
 
 /**
- * Hook to stop a zone on the Pi
+ * Hook to stop a pin on the Pi
  */
-export function usePiStopZone() {
+export function usePiStopPin() {
   const { toast } = useToast();
   const { piClient } = usePiConfig();
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (zone: number): Promise<PiPinControlResponse> => {
-      return await piClient.stopZone(zone);
+    mutationFn: async (pin: number): Promise<PiPinControlResponse> => {
+      return await piClient.stopPin(pin);
     },
-    onSuccess: (result, zone) => {
+    onSuccess: (result, pin) => {
       toast({
-        title: "Zone Stopped",
-        description: `Zone ${zone} stopped successfully`,
+        title: "Pin Stopped",
+        description: `Pin ${pin} stopped successfully`,
       });
-      // Invalidate status and pins to get updated zone state
+      // Invalidate status and pins to get updated pin state
       queryClient.invalidateQueries({ queryKey: ['pi-status'] });
       queryClient.invalidateQueries({ queryKey: ['pi-pins'] });
     },
-    onError: (error: any, zone) => {
-      let message = `Failed to stop zone ${zone}`;
+    onError: (error: any, pin) => {
+      let message = `Failed to stop pin ${pin}`;
       
       if (error instanceof PiConnectionError) {
         switch (error.type) {
@@ -239,7 +239,7 @@ export function usePiStopZone() {
       }
 
       toast({
-        title: "Zone Stop Failed",
+        title: "Pin Stop Failed",
         description: message,
         variant: "destructive",
       });
@@ -391,14 +391,14 @@ export function usePiConnection() {
 }
 
 /**
- * Hook to get Pi zones with transformation from pin-based to zone-based data
+ * Hook to get Pi pins with transformation from pin-based to pin-based data (transformed for backend compatibility)
  */
-export function usePiZones(options?: { enabled?: boolean; refetchInterval?: number }) {
+export function usePiPinsTransformed(options?: { enabled?: boolean; refetchInterval?: number }) {
   const piStatusQuery = usePiStatus(options);
   const piPinsQuery = usePiPins(options);
 
-  // Transform Pi pin data to zone format that matches the backend API
-  const zones = useMemo(() => {
+  // Transform Pi pin data to pin format that matches the backend API
+  const pins = useMemo(() => {
     if (!piStatusQuery.data?.pins || !piPinsQuery.data || !Array.isArray(piPinsQuery.data)) return [];
 
     // Create a map of pin states for quick lookup
@@ -408,10 +408,10 @@ export function usePiZones(options?: { enabled?: boolean; refetchInterval?: numb
     });
 
     return piStatusQuery.data.pins.map((pinNumber, index) => ({
-      id: `pi-zone-${index + 1}`,
-      zoneNumber: index + 1,
+      id: `pi-pin-${index + 1}`,
+      pinNumber: index + 1,
       gpioPin: pinNumber,
-      name: `Zone ${index + 1}`,
+      name: `Pin ${index + 1}`,
       isEnabled: !piStatusQuery.data?.deny.includes(pinNumber), // Not in deny list
       isRunning: pinStateMap.get(pinNumber) || false,
       isActive: pinStateMap.get(pinNumber) || false,
@@ -422,7 +422,7 @@ export function usePiZones(options?: { enabled?: boolean; refetchInterval?: numb
   }, [piStatusQuery.data, piPinsQuery.data]);
 
   return {
-    data: zones,
+    data: pins,
     isLoading: piStatusQuery.isLoading || piPinsQuery.isLoading,
     error: piStatusQuery.error || piPinsQuery.error,
     refetch: () => {

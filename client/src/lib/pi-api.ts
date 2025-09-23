@@ -28,7 +28,7 @@ export interface PiSystemStatus {
 
 export type PiPinsResponse = PiPin[];
 
-export interface PiZoneControlRequest {
+export interface PiPinControlRequest {
   minutes: number;
 }
 
@@ -124,30 +124,30 @@ export class PiApiClient {
   }
 
   /**
-   * Start a zone on the Pi (maps zone number to GPIO pin)
+   * Start a pin on the Pi (maps pin number to GPIO pin)
    */
-  async startZone(zone: number, duration: number): Promise<PiPinControlResponse> {
-    // Map 1-based zone number to GPIO pin number
-    // Zone 1 → GPIO_PINS[0] = 12, Zone 2 → GPIO_PINS[1] = 16, etc.
-    if (zone < 1 || zone > GPIO_PINS.length) {
-      throw new Error(`Invalid zone number ${zone}. Must be between 1 and ${GPIO_PINS.length}`);
+  async startPin(pin: number, duration: number): Promise<PiPinControlResponse> {
+    // Map 1-based pin number to GPIO pin number
+    // Pin 1 → GPIO_PINS[0] = 12, Pin 2 → GPIO_PINS[1] = 16, etc.
+    if (pin < 1 || pin > GPIO_PINS.length) {
+      throw new Error(`Invalid pin number ${pin}. Must be between 1 and ${GPIO_PINS.length}`);
     }
     
-    const gpioPin = GPIO_PINS[zone - 1]; // Convert 1-based to 0-based index
+    const gpioPin = GPIO_PINS[pin - 1]; // Convert 1-based to 0-based index
     return this.turnPinOn(gpioPin, duration);
   }
 
   /**
-   * Stop a zone on the Pi (maps zone number to GPIO pin)
+   * Stop a pin on the Pi (maps pin number to GPIO pin)
    */
-  async stopZone(zone: number): Promise<PiPinControlResponse> {
-    // Map 1-based zone number to GPIO pin number
-    // Zone 1 → GPIO_PINS[0] = 12, Zone 2 → GPIO_PINS[1] = 16, etc.
-    if (zone < 1 || zone > GPIO_PINS.length) {
-      throw new Error(`Invalid zone number ${zone}. Must be between 1 and ${GPIO_PINS.length}`);
+  async stopPin(pin: number): Promise<PiPinControlResponse> {
+    // Map 1-based pin number to GPIO pin number
+    // Pin 1 → GPIO_PINS[0] = 12, Pin 2 → GPIO_PINS[1] = 16, etc.
+    if (pin < 1 || pin > GPIO_PINS.length) {
+      throw new Error(`Invalid pin number ${pin}. Must be between 1 and ${GPIO_PINS.length}`);
     }
     
-    const gpioPin = GPIO_PINS[zone - 1]; // Convert 1-based to 0-based index
+    const gpioPin = GPIO_PINS[pin - 1]; // Convert 1-based to 0-based index
     return this.turnPinOff(gpioPin);
   }
 

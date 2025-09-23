@@ -26,9 +26,9 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { 
   usePiStatus, 
-  usePiZones, 
-  usePiStartZone, 
-  usePiStopZone, 
+  usePiPinsTransformed, 
+  usePiStartPin, 
+  usePiStopPin, 
   usePiDiagnostics 
 } from "@/hooks/use-pi-api";
 import type { SystemStatus } from "@shared/schema";
@@ -80,7 +80,7 @@ export default function Dashboard() {
     fallbackToOffline: true,
   });
   
-  const { data: piZones = [], isLoading: piZonesLoading, piRawData } = usePiZones({
+  const { data: piPins = [], isLoading: piPinsLoading, piRawData } = usePiPinsTransformed({
     enabled: true,
     refetchInterval: 10000,
   });
@@ -110,13 +110,13 @@ export default function Dashboard() {
   
   // Use Pi data when available, otherwise fallback to backend
   const systemStatus = piDiagnostics.isOnline ? piStatus : backendStatus;
-  const pins = piDiagnostics.isOnline ? piZones : (backendPins as any[]);
+  const pins = piDiagnostics.isOnline ? piPins : (backendPins as any[]);
   const isLoading = piDiagnostics.isOnline ? 
-    (piStatusLoading || piZonesLoading) : 
+    (piStatusLoading || piPinsLoading) : 
     (backendStatusLoading || backendPinsLoading);
 
   // Pi zone control hooks
-  const piStartZoneMutation = usePiStartZone();
+  const piStartPinMutation = usePiStartPin();
   
   // Fallback backend pin control
   const backendStartPinMutation = useMutation({
@@ -141,7 +141,7 @@ export default function Dashboard() {
   });
 
   // Pi zone control hooks  
-  const piStopZoneMutation = usePiStopZone();
+  const piStopPinMutation = usePiStopPin();
   
   // Fallback backend pin control
   const backendStopPinMutation = useMutation({
@@ -167,11 +167,11 @@ export default function Dashboard() {
 
   // Combined mutation states for UI feedback
   const startPinMutation = {
-    isPending: piStartZoneMutation.isPending || backendStartPinMutation.isPending,
+    isPending: piStartPinMutation.isPending || backendStartPinMutation.isPending,
   };
   
   const stopPinMutation = {
-    isPending: piStopZoneMutation.isPending || backendStopPinMutation.isPending,
+    isPending: piStopPinMutation.isPending || backendStopPinMutation.isPending,
   };
 
 
@@ -248,7 +248,7 @@ export default function Dashboard() {
     }
 
     if (piDiagnostics.isOnline) {
-      piStartZoneMutation.mutate({ zone: pinNumber, duration });
+      piStartPinMutation.mutate({ pin: pinNumber, duration });
     } else {
       backendStartPinMutation.mutate({ pin: pinNumber, duration });
     }
@@ -256,7 +256,7 @@ export default function Dashboard() {
 
   const handleQuickStop = (pinNumber: number) => {
     if (piDiagnostics.isOnline) {
-      piStopZoneMutation.mutate(pinNumber);
+      piStopPinMutation.mutate(pinNumber);
     } else {
       backendStopPinMutation.mutate(pinNumber);
     }
