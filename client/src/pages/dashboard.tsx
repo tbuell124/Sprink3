@@ -152,14 +152,14 @@ export default function Dashboard() {
       queryClient.invalidateQueries({ queryKey: ['/api/status'] });
       queryClient.invalidateQueries({ queryKey: ['/api/pins'] });
       toast({
-        title: "Zone Stopped",
-        description: "Zone deactivated successfully",
+        title: "Pin Stopped",
+        description: "Pin deactivated successfully",
       });
     },
     onError: (error: any) => {
       toast({
         title: "Error",
-        description: error.response?.data?.error || "Failed to stop zone",
+        description: error.response?.data?.error || "Failed to stop pin",
         variant: "destructive",
       });
     },
@@ -237,7 +237,8 @@ export default function Dashboard() {
 
   const handleQuickStart = (pinNumber: number, duration: number = 30) => {
     // Check master control before starting any pin
-    if (!backendStatus?.masterEnabled) {
+    const masterEnabled = piDiagnostics.isOnline ? systemStatus?.masterEnabled : backendStatus?.masterEnabled;
+    if (masterEnabled === false) {
       toast({
         title: "System Disabled",
         description: "Master control is disabled. Enable it to start pins.",
@@ -291,7 +292,7 @@ export default function Dashboard() {
         <div className="p-4 md:p-6">
           <div className="mb-6">
             <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
-            <p className="text-muted-foreground">System status and zone controls</p>
+            <p className="text-muted-foreground">System status and pin controls</p>
           </div>
           <div className="animate-pulse space-y-4">
             <div className="grid grid-cols-2 gap-4">
@@ -314,7 +315,7 @@ export default function Dashboard() {
       <div className="p-4 md:p-6 mobile-scroll">
         <div className="mb-6">
           <h1 className="text-2xl md:text-3xl font-bold text-foreground mobile-text-primary">Dashboard</h1>
-          <p className="text-muted-foreground mobile-text-secondary">System status and zone controls</p>
+          <p className="text-muted-foreground mobile-text-secondary">System status and pin controls</p>
         </div>
         {/* Stats Cards */}
         <div 
@@ -323,7 +324,7 @@ export default function Dashboard() {
           aria-label="System statistics overview"
         >
           <Card 
-            data-testid="stats-total-zones" 
+            data-testid="stats-total-pins" 
             className="zone-card mobile-card touch-feedback-soft"
             role="article"
             aria-labelledby="total-zones-title"
@@ -334,7 +335,7 @@ export default function Dashboard() {
                 <div className="flex-1">
                   <p id="total-zones-title" className="text-xs md:text-sm font-medium text-muted-foreground mobile-text-caption">Total Pins</p>
                   <p id="total-zones-desc" className="text-xl md:text-2xl font-bold text-foreground mobile-text-primary" aria-label={`${statsData.totalPins} pins configured`}>
-                    {statsData.totalZones}
+                    {statsData.totalPins}
                   </p>
                 </div>
                 <div className="p-2 md:p-3 rounded-lg bg-blue-500/20 border border-blue-500/30" aria-hidden="true">
@@ -345,7 +346,7 @@ export default function Dashboard() {
           </Card>
 
           <Card 
-            data-testid="stats-active-zones" 
+            data-testid="stats-active-pins" 
             className={`zone-card mobile-card touch-feedback-soft ${statsData.activePins > 0 ? 'zone-active-glow' : ''}`}
             role="article"
             aria-labelledby="active-zones-title"
@@ -378,12 +379,12 @@ export default function Dashboard() {
             </CardContent>
           </Card>
 
-          <Card data-testid="stats-enabled-zones" className="zone-card mobile-card touch-feedback-soft">
+          <Card data-testid="stats-enabled-pins" className="zone-card mobile-card touch-feedback-soft">
             <CardContent className="p-4 md:p-6">
               <div className="flex items-center">
                 <div className="flex-1">
-                  <p className="text-xs md:text-sm font-medium text-muted-foreground mobile-text-caption">Enabled Zones</p>
-                  <p className="text-xl md:text-2xl font-bold text-foreground mobile-text-primary">{statsData.enabledZones}</p>
+                  <p className="text-xs md:text-sm font-medium text-muted-foreground mobile-text-caption">Enabled Pins</p>
+                  <p className="text-xl md:text-2xl font-bold text-foreground mobile-text-primary">{statsData.enabledPins}</p>
                 </div>
                 <div className="p-2 md:p-3 rounded-lg bg-orange-500/20 border border-orange-500/30">
                   <Zap className="h-6 w-6 md:h-8 md:w-8 text-orange-400" />
@@ -418,16 +419,16 @@ export default function Dashboard() {
                 <div>
                   <h3 className="text-lg font-semibold text-foreground">Master System Control</h3>
                   <p className="text-sm text-muted-foreground">
-                    {backendStatus?.masterEnabled ? "System is enabled and operational" : "System is disabled - all zones stopped"}
+                    {(piDiagnostics.isOnline ? systemStatus?.masterEnabled : backendStatus?.masterEnabled) ? "System is enabled and operational" : "System is disabled - all pins stopped"}
                   </p>
                 </div>
               </div>
               <div className="flex items-center space-x-3">
                 <div className={`w-3 h-3 rounded-full ${
-                  backendStatus?.masterEnabled ? 'bg-green-400 pulse-green' : 'bg-red-400 pulse-red'
+                  (piDiagnostics.isOnline ? systemStatus?.masterEnabled : backendStatus?.masterEnabled) ? 'bg-green-400 pulse-green' : 'bg-red-400 pulse-red'
                 }`} />
                 <Switch
-                  checked={backendStatus?.masterEnabled || false}
+                  checked={(piDiagnostics.isOnline ? systemStatus?.masterEnabled : backendStatus?.masterEnabled) || false}
                   onCheckedChange={(checked) => {
                     masterControlMutation.mutate(checked);
                   }}
@@ -542,7 +543,7 @@ export default function Dashboard() {
           {/* Active Zones & Upcoming Schedules */}
           <div className="lg:col-span-2 space-y-6">
             {/* Active Zones */}
-            <Card data-testid="active-zones" className="zone-card">
+            <Card data-testid="active-pins" className="zone-card">
               <CardHeader>
                 <CardTitle className="flex items-center">
                   <div className="p-2 rounded-lg bg-primary/20 border border-primary/30 mr-3">
@@ -563,7 +564,7 @@ export default function Dashboard() {
                 ) : (
                   <div className="space-y-4">
                     {activePins.map((pin: any) => (
-                      <div key={pin.id} className="zone-active-glow p-4 rounded-lg relative overflow-hidden">
+                      <div key={pin.pinNumber} className="zone-active-glow p-4 rounded-lg relative overflow-hidden">
                         <div className="flex items-center justify-between relative z-10">
                           <div className="flex items-center space-x-3">
                             <div className="w-4 h-4 bg-primary rounded-full pulse-green" />
@@ -633,7 +634,7 @@ export default function Dashboard() {
                                       stepIndex === (schedule?.currentStep || 0) ? 'bg-primary' : 'bg-muted-foreground/30'
                                     }`} />
                                     <span className={stepIndex === (schedule?.currentStep || 0) ? 'text-primary font-medium' : 'text-muted-foreground'}>
-                                      Zone {step?.zoneNumber || '?'} • {step?.duration || '?'}min
+                                      Pin {step?.zoneNumber || '?'} • {step?.duration || '?'}min
                                       {stepIndex === (schedule?.currentStep || 0) && step?.timeLeft && ` (${step.timeLeft}min left)`}
                                     </span>
                                   </div>
