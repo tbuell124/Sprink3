@@ -851,14 +851,14 @@ function PinGrid({ pins, onEdit, onTest, onStop, onToggleEnabled, testDuration, 
             
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">Default Duration:</span>
-              <span className="font-medium">{zone.defaultDuration} min</span>
+              <span className="font-medium">{pin.defaultDuration} min</span>
             </div>
             
             <div className="flex items-center space-x-2">
               <Switch
-                checked={zone.isEnabled}
-                onCheckedChange={() => onToggleEnabled(zone)}
-                data-testid={`toggle-zone-${zone.zoneNumber}`}
+                checked={pin.isEnabled}
+                onCheckedChange={() => onToggleEnabled(pin)}
+                data-testid={`toggle-pin-${pin.pinNumber}`}
               />
               <Label className="text-sm">Pin Enabled</Label>
             </div>
@@ -867,21 +867,21 @@ function PinGrid({ pins, onEdit, onTest, onStop, onToggleEnabled, testDuration, 
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() => onEdit(zone)}
+                onClick={() => onEdit(pin)}
                 className="flex-1"
-                data-testid={`edit-zone-${zone.zoneNumber}`}
+                data-testid={`edit-pin-${pin.pinNumber}`}
               >
                 <Edit className="w-4 h-4 mr-1" />
                 Edit
               </Button>
               
-              {zone.isRunning ? (
+              {pin.isRunning ? (
                 <Button
                   size="sm"
                   variant="destructive"
-                  onClick={() => onStop(zone.zoneNumber)}
+                  onClick={() => onStop(pin.pinNumber)}
                   disabled={isLoading}
-                  data-testid={`stop-zone-${zone.zoneNumber}`}
+                  data-testid={`stop-pin-${pin.pinNumber}`}
                 >
                   <Square className="w-4 h-4 mr-1" />
                   Stop
@@ -889,9 +889,9 @@ function PinGrid({ pins, onEdit, onTest, onStop, onToggleEnabled, testDuration, 
               ) : (
                 <Button
                   size="sm"
-                  onClick={() => onTest(zone.zoneNumber)}
-                  disabled={!zone.isEnabled || isLoading}
-                  data-testid={`test-zone-${zone.zoneNumber}`}
+                  onClick={() => onTest(pin.pinNumber)}
+                  disabled={!pin.isEnabled || isLoading}
+                  data-testid={`test-pin-${pin.pinNumber}`}
                 >
                   <Play className="w-4 h-4 mr-1" />
                   Test
