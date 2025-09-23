@@ -14,9 +14,9 @@ export const users = pgTable("users", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-export const zones = pgTable("zones", {
+export const pins = pgTable("pins", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  zoneNumber: integer("zone_number").notNull().unique(), // 1-16 for GPIO mapping
+  pinNumber: integer("pin_number").notNull().unique(), // 1-16 for display purposes
   gpioPin: integer("gpio_pin").notNull().unique(), // Actual GPIO pin number
   name: text("name").notNull(), // User-friendly name like "Front Lawn"
   isEnabled: boolean("is_enabled").notNull().default(true),
@@ -39,14 +39,14 @@ export const schedules = pgTable("schedules", {
 export const scheduleSteps = pgTable("schedule_steps", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   scheduleId: varchar("schedule_id").notNull().references(() => schedules.id),
-  zoneId: varchar("zone_id").notNull().references(() => zones.id),
+  pinId: varchar("pin_id").notNull().references(() => pins.id),
   stepOrder: integer("step_order").notNull(),
   duration: integer("duration").notNull(), // minutes
 });
 
-export const zoneRuns = pgTable("zone_runs", {
+export const pinRuns = pgTable("pin_runs", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  zoneId: varchar("zone_id").notNull().references(() => zones.id),
+  pinId: varchar("pin_id").notNull().references(() => pins.id),
   duration: integer("duration").notNull(), // minutes
   source: text("source").notNull(), // "manual", "schedule:{id}"
   scheduleId: varchar("schedule_id").references(() => schedules.id),
@@ -86,11 +86,11 @@ export const rainDelaySettings = pgTable("rain_delay_settings", {
 export const notifications = pgTable("notifications", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull().references(() => users.id),
-  type: text("type").notNull(), // zone_started, zone_completed, schedule_started, rain_delay_activated
+  type: text("type").notNull(), // pin_started, pin_completed, schedule_started, rain_delay_activated
   title: text("title").notNull(),
   message: text("message").notNull(),
   read: integer("read").notNull().default(0), // 0 = false, 1 = true
-  relatedZoneId: varchar("related_zone_id").references(() => zones.id),
+  relatedPinId: varchar("related_pin_id").references(() => pins.id),
   relatedScheduleId: varchar("related_schedule_id").references(() => schedules.id),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
@@ -101,7 +101,7 @@ export const insertUserSchema = createInsertSchema(users).omit({
   createdAt: true,
 });
 
-export const insertZoneSchema = createInsertSchema(zones).omit({
+export const insertPinSchema = createInsertSchema(pins).omit({
   id: true,
   isActive: true,
   currentRunId: true,
@@ -118,7 +118,7 @@ export const insertScheduleStepSchema = createInsertSchema(scheduleSteps).omit({
   id: true,
 });
 
-export const insertZoneRunSchema = createInsertSchema(zoneRuns).omit({
+export const insertPinRunSchema = createInsertSchema(pinRuns).omit({
   id: true,
   startedAt: true,
   completedAt: true,
@@ -145,8 +145,8 @@ export const insertNotificationSchema = createInsertSchema(notifications).omit({
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
 
-export type Zone = typeof zones.$inferSelect;
-export type InsertZone = z.infer<typeof insertZoneSchema>;
+export type Pin = typeof pins.$inferSelect;
+export type InsertPin = z.infer<typeof insertPinSchema>;
 
 export type Schedule = typeof schedules.$inferSelect;
 export type InsertSchedule = z.infer<typeof insertScheduleSchema>;
@@ -154,8 +154,8 @@ export type InsertSchedule = z.infer<typeof insertScheduleSchema>;
 export type ScheduleStep = typeof scheduleSteps.$inferSelect;
 export type InsertScheduleStep = z.infer<typeof insertScheduleStepSchema>;
 
-export type ZoneRun = typeof zoneRuns.$inferSelect;
-export type InsertZoneRun = z.infer<typeof insertZoneRunSchema>;
+export type PinRun = typeof pinRuns.$inferSelect;
+export type InsertPinRun = z.infer<typeof insertPinRunSchema>;
 
 export type SystemStatus = typeof systemStatus.$inferSelect;
 export type InsertSystemStatus = z.infer<typeof insertSystemStatusSchema>;
@@ -200,7 +200,7 @@ export const RAIN_DELAY_LIMITS = {
 } as const;
 
 // Additional schemas for API validation
-export const zoneControlSchema = z.object({
+export const pinControlSchema = z.object({
   duration: z.number()
     .min(SAFETY_LIMITS.MIN_DURATION_MINUTES)
     .max(SAFETY_LIMITS.MAX_DURATION_MINUTES)
@@ -227,7 +227,7 @@ export const rainDelaySchema = z.object({
 });
 
 export const scheduleStepUpdateSchema = z.object({
-  zoneId: z.string(),
+  pinId: z.string(),
   duration: z.number().min(SAFETY_LIMITS.MIN_DURATION_MINUTES).max(SAFETY_LIMITS.MAX_DURATION_MINUTES),
   stepOrder: z.number().min(0),
 });

@@ -1,14 +1,14 @@
 import { 
   type User, 
   type InsertUser, 
-  type Zone,
-  type InsertZone,
+  type Pin,
+  type InsertPin,
   type Schedule,
   type InsertSchedule,
   type ScheduleStep,
   type InsertScheduleStep,
-  type ZoneRun,
-  type InsertZoneRun,
+  type PinRun,
+  type InsertPinRun,
   type SystemStatus,
   type InsertSystemStatus,
   type Notification,
@@ -27,16 +27,16 @@ export interface IStorage {
   createUser(user: InsertUser): Promise<User>;
   getUsersByRole(role: string): Promise<User[]>;
 
-  // Zones
-  getZone(id: string): Promise<Zone | undefined>;
-  getZoneByNumber(zoneNumber: number): Promise<Zone | undefined>;
-  getZoneByGpioPin(gpioPin: number): Promise<Zone | undefined>;
-  getAllZones(): Promise<Zone[]>;
-  getActiveZones(): Promise<Zone[]>;
-  getEnabledZones(): Promise<Zone[]>;
-  createZone(zone: InsertZone): Promise<Zone>;
-  updateZone(id: string, updates: Partial<Zone>): Promise<Zone | undefined>;
-  deleteZone(id: string): Promise<boolean>;
+  // Pins
+  getPin(id: string): Promise<Pin | undefined>;
+  getPinByNumber(pinNumber: number): Promise<Pin | undefined>;
+  getPinByGpioPin(gpioPin: number): Promise<Pin | undefined>;
+  getAllPins(): Promise<Pin[]>;
+  getActivePins(): Promise<Pin[]>;
+  getEnabledPins(): Promise<Pin[]>;
+  createPin(pin: InsertPin): Promise<Pin>;
+  updatePin(id: string, updates: Partial<Pin>): Promise<Pin | undefined>;
+  deletePin(id: string): Promise<boolean>;
 
   // Schedules
   getSchedule(id: string): Promise<Schedule | undefined>;
@@ -54,15 +54,15 @@ export interface IStorage {
   deleteScheduleStep(id: string): Promise<boolean>;
   deleteScheduleSteps(scheduleId: string): Promise<boolean>;
 
-  // Zone Runs
-  getZoneRun(id: string): Promise<ZoneRun | undefined>;
-  getActiveZoneRuns(): Promise<ZoneRun[]>;
-  getZoneRunsByZone(zoneId: string): Promise<ZoneRun[]>;
-  getZoneRunsBySchedule(scheduleId: string): Promise<ZoneRun[]>;
-  createZoneRun(zoneRun: InsertZoneRun): Promise<ZoneRun>;
-  updateZoneRun(id: string, updates: Partial<ZoneRun>): Promise<ZoneRun | undefined>;
-  completeZoneRun(id: string): Promise<ZoneRun | undefined>;
-  cancelZoneRun(id: string): Promise<ZoneRun | undefined>;
+  // Pin Runs
+  getPinRun(id: string): Promise<PinRun | undefined>;
+  getActivePinRuns(): Promise<PinRun[]>;
+  getPinRunsByPin(pinId: string): Promise<PinRun[]>;
+  getPinRunsBySchedule(scheduleId: string): Promise<PinRun[]>;
+  createPinRun(pinRun: InsertPinRun): Promise<PinRun>;
+  updatePinRun(id: string, updates: Partial<PinRun>): Promise<PinRun | undefined>;
+  completePinRun(id: string): Promise<PinRun | undefined>;
+  cancelPinRun(id: string): Promise<PinRun | undefined>;
 
   // System Status
   getSystemStatus(): Promise<SystemStatus>;
@@ -80,30 +80,30 @@ export interface IStorage {
   updateRainDelaySettings(updates: Partial<RainDelaySettings>): Promise<RainDelaySettings>;
 
   // Analytics
-  getZoneAnalytics(startDate?: Date, endDate?: Date): Promise<{
+  getPinAnalytics(startDate?: Date, endDate?: Date): Promise<{
     totalRuns: number;
     totalDuration: number;
-    byZone: { zoneName: string; runs: number; duration: number }[];
+    byPin: { pinName: string; runs: number; duration: number }[];
     bySource: { source: string; runs: number; duration: number }[];
   }>;
 }
 
 export class MemStorage implements IStorage {
   private users: Map<string, User>;
-  private zones: Map<string, Zone>;
+  private pins: Map<string, Pin>;
   private schedules: Map<string, Schedule>;
   private scheduleSteps: Map<string, ScheduleStep>;
-  private zoneRuns: Map<string, ZoneRun>;
+  private pinRuns: Map<string, PinRun>;
   private systemStatus: SystemStatus;
   private notifications: Map<string, Notification>;
   private rainDelaySettings: RainDelaySettings;
 
   constructor() {
     this.users = new Map();
-    this.zones = new Map();
+    this.pins = new Map();
     this.schedules = new Map();
     this.scheduleSteps = new Map();
-    this.zoneRuns = new Map();
+    this.pinRuns = new Map();
     this.notifications = new Map();
     
     // Initialize system status
@@ -159,17 +159,17 @@ export class MemStorage implements IStorage {
     ];
 
     for (let i = 0; i < DEFAULT_GPIO_PINS.length; i++) {
-      await this.createZone({
-        zoneNumber: i + 1,
+      await this.createPin({
+        pinNumber: i + 1,
         gpioPin: DEFAULT_GPIO_PINS[i],
-        name: zoneNames[i] || `Zone ${i + 1}`,
+        name: zoneNames[i] || `Pin ${i + 1}`,
         isEnabled: true,
         defaultDuration: 30,
       });
     }
 
     // Create sample schedule
-    const zones = await this.getAllZones();
+    const pins = await this.getAllPins();
     const sampleSchedule = await this.createSchedule({
       name: "Morning Watering",
       startTime: "06:00",
@@ -178,10 +178,10 @@ export class MemStorage implements IStorage {
     });
 
     // Add schedule steps for first 4 zones
-    for (let i = 0; i < Math.min(4, zones.length); i++) {
+    for (let i = 0; i < Math.min(4, pins.length); i++) {
       await this.createScheduleStep({
         scheduleId: sampleSchedule.id,
-        zoneId: zones[i].id,
+        pinId: pins[i].id,
         stepOrder: i,
         duration: 15,
       });
@@ -217,54 +217,54 @@ export class MemStorage implements IStorage {
   }
 
   // Zones
-  async getZone(id: string): Promise<Zone | undefined> {
-    return this.zones.get(id);
+  async getPin(id: string): Promise<Pin | undefined> {
+    return this.pins.get(id);
   }
 
-  async getZoneByNumber(zoneNumber: number): Promise<Zone | undefined> {
-    return Array.from(this.zones.values()).find(zone => zone.zoneNumber === zoneNumber);
+  async getPinByNumber(pinNumber: number): Promise<Pin | undefined> {
+    return Array.from(this.pins.values()).find(pin => pin.pinNumber === pinNumber);
   }
 
-  async getZoneByGpioPin(gpioPin: number): Promise<Zone | undefined> {
-    return Array.from(this.zones.values()).find(zone => zone.gpioPin === gpioPin);
+  async getPinByGpioPin(gpioPin: number): Promise<Pin | undefined> {
+    return Array.from(this.pins.values()).find(pin => pin.gpioPin === gpioPin);
   }
 
-  async getAllZones(): Promise<Zone[]> {
-    return Array.from(this.zones.values()).sort((a, b) => a.zoneNumber - b.zoneNumber);
+  async getAllPins(): Promise<Pin[]> {
+    return Array.from(this.pins.values()).sort((a, b) => a.pinNumber - b.pinNumber);
   }
 
-  async getActiveZones(): Promise<Zone[]> {
-    return Array.from(this.zones.values()).filter(zone => zone.isActive);
+  async getActivePins(): Promise<Pin[]> {
+    return Array.from(this.pins.values()).filter(pin => pin.isActive);
   }
 
-  async getEnabledZones(): Promise<Zone[]> {
-    return Array.from(this.zones.values())
-      .filter(zone => zone.isEnabled)
-      .sort((a, b) => a.zoneNumber - b.zoneNumber);
+  async getEnabledPins(): Promise<Pin[]> {
+    return Array.from(this.pins.values())
+      .filter(pin => pin.isEnabled)
+      .sort((a, b) => a.pinNumber - b.pinNumber);
   }
 
-  async createZone(insertZone: InsertZone): Promise<Zone> {
+  async createPin(insertPin: InsertPin): Promise<Pin> {
     const id = randomUUID();
-    const zone: Zone = {
-      ...insertZone,
+    const pin: Pin = {
+      ...insertPin,
       id,
       createdAt: new Date(),
     };
-    this.zones.set(id, zone);
-    return zone;
+    this.pins.set(id, pin);
+    return pin;
   }
 
-  async updateZone(id: string, updates: Partial<Zone>): Promise<Zone | undefined> {
-    const zone = this.zones.get(id);
-    if (!zone) return undefined;
+  async updatePin(id: string, updates: Partial<Pin>): Promise<Pin | undefined> {
+    const pin = this.pins.get(id);
+    if (!pin) return undefined;
 
-    const updatedZone = { ...zone, ...updates };
-    this.zones.set(id, updatedZone);
-    return updatedZone;
+    const updatedPin = { ...pin, ...updates };
+    this.pins.set(id, updatedPin);
+    return updatedPin;
   }
 
-  async deleteZone(id: string): Promise<boolean> {
-    return this.zones.delete(id);
+  async deletePin(id: string): Promise<boolean> {
+    return this.pins.delete(id);
   }
 
   // Schedules
@@ -352,95 +352,95 @@ export class MemStorage implements IStorage {
     return allDeleted;
   }
 
-  // Zone Runs
-  async getZoneRun(id: string): Promise<ZoneRun | undefined> {
-    return this.zoneRuns.get(id);
+  // Pin Runs
+  async getPinRun(id: string): Promise<PinRun | undefined> {
+    return this.pinRuns.get(id);
   }
 
-  async getActiveZoneRuns(): Promise<ZoneRun[]> {
-    return Array.from(this.zoneRuns.values())
+  async getActivePinRuns(): Promise<PinRun[]> {
+    return Array.from(this.pinRuns.values())
       .filter(run => run.status === "running")
       .sort((a, b) => new Date(a.startedAt).getTime() - new Date(b.startedAt).getTime());
   }
 
-  async getZoneRunsByZone(zoneId: string): Promise<ZoneRun[]> {
-    return Array.from(this.zoneRuns.values())
-      .filter(run => run.zoneId === zoneId)
+  async getPinRunsByPin(pinId: string): Promise<PinRun[]> {
+    return Array.from(this.pinRuns.values())
+      .filter(run => run.pinId === pinId)
       .sort((a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime());
   }
 
-  async getZoneRunsBySchedule(scheduleId: string): Promise<ZoneRun[]> {
-    return Array.from(this.zoneRuns.values())
+  async getPinRunsBySchedule(scheduleId: string): Promise<PinRun[]> {
+    return Array.from(this.pinRuns.values())
       .filter(run => run.scheduleId === scheduleId)
       .sort((a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime());
   }
 
-  async createZoneRun(insertZoneRun: InsertZoneRun): Promise<ZoneRun> {
+  async createPinRun(insertPinRun: InsertPinRun): Promise<PinRun> {
     const id = randomUUID();
-    const zoneRun: ZoneRun = {
-      ...insertZoneRun,
+    const pinRun: PinRun = {
+      ...insertPinRun,
       id,
       startedAt: new Date(),
       completedAt: null,
     };
-    this.zoneRuns.set(id, zoneRun);
+    this.pinRuns.set(id, pinRun);
     
-    // Update the zone to mark it as active
-    await this.updateZone(zoneRun.zoneId, { 
+    // Update the pin to mark it as active
+    await this.updatePin(pinRun.pinId, { 
       isActive: true, 
       currentRunId: id 
     });
     
-    return zoneRun;
+    return pinRun;
   }
 
-  async updateZoneRun(id: string, updates: Partial<ZoneRun>): Promise<ZoneRun | undefined> {
-    const zoneRun = this.zoneRuns.get(id);
-    if (!zoneRun) return undefined;
+  async updatePinRun(id: string, updates: Partial<PinRun>): Promise<PinRun | undefined> {
+    const pinRun = this.pinRuns.get(id);
+    if (!pinRun) return undefined;
 
-    const updatedZoneRun = { ...zoneRun, ...updates };
-    this.zoneRuns.set(id, updatedZoneRun);
-    return updatedZoneRun;
+    const updatedPinRun = { ...pinRun, ...updates };
+    this.pinRuns.set(id, updatedPinRun);
+    return updatedPinRun;
   }
 
-  async completeZoneRun(id: string): Promise<ZoneRun | undefined> {
-    const zoneRun = this.zoneRuns.get(id);
-    if (!zoneRun) return undefined;
+  async completePinRun(id: string): Promise<PinRun | undefined> {
+    const pinRun = this.pinRuns.get(id);
+    if (!pinRun) return undefined;
 
-    const updatedZoneRun = { 
-      ...zoneRun, 
+    const updatedPinRun = { 
+      ...pinRun, 
       status: "completed", 
       completedAt: new Date() 
     };
-    this.zoneRuns.set(id, updatedZoneRun);
+    this.pinRuns.set(id, updatedPinRun);
     
-    // Update the zone to mark it as inactive
-    await this.updateZone(zoneRun.zoneId, { 
+    // Update the pin to mark it as inactive
+    await this.updatePin(pinRun.pinId, { 
       isActive: false, 
       currentRunId: null 
     });
     
-    return updatedZoneRun;
+    return updatedPinRun;
   }
 
-  async cancelZoneRun(id: string): Promise<ZoneRun | undefined> {
-    const zoneRun = this.zoneRuns.get(id);
-    if (!zoneRun) return undefined;
+  async cancelPinRun(id: string): Promise<PinRun | undefined> {
+    const pinRun = this.pinRuns.get(id);
+    if (!pinRun) return undefined;
 
-    const updatedZoneRun = { 
-      ...zoneRun, 
+    const updatedPinRun = { 
+      ...pinRun, 
       status: "cancelled", 
       completedAt: new Date() 
     };
-    this.zoneRuns.set(id, updatedZoneRun);
+    this.pinRuns.set(id, updatedPinRun);
     
-    // Update the zone to mark it as inactive
-    await this.updateZone(zoneRun.zoneId, { 
+    // Update the pin to mark it as inactive
+    await this.updatePin(pinRun.pinId, { 
       isActive: false, 
       currentRunId: null 
     });
     
-    return updatedZoneRun;
+    return updatedPinRun;
   }
 
   // System Status

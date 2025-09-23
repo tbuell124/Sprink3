@@ -3,11 +3,11 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { 
   loginSchema, 
-  zoneControlSchema, 
+  pinControlSchema, 
   rainDelaySchema,
   scheduleUpdateSchema,
   insertScheduleSchema,
-  insertZoneSchema,
+  insertPinSchema,
   rainDelaySettingsUpdateSchema,
   masterControlSchema
 } from "@shared/schema";
@@ -104,17 +104,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // System Status - Main endpoint for dashboard information
   app.get("/api/status", requireAuth, async (req: Request, res: Response) => {
     try {
-      const zones = await storage.getAllZones();
-      const activeRuns = await storage.getActiveZoneRuns();
+      const pins = await storage.getAllPins();
+      const activeRuns = await storage.getActivePinRuns();
       const systemStatus = await storage.getSystemStatus();
       const schedules = await storage.getActiveSchedules();
 
-      // Format zones with current run information
-      const formattedZones = await Promise.all(zones.map(async (zone) => {
-        const currentRun = activeRuns.find(run => run.zoneId === zone.id);
+      // Format pins with current run information
+      const formattedPins = await Promise.all(pins.map(async (pin) => {
+        const currentRun = activeRuns.find(run => run.pinId === pin.id);
         return {
-          ...zone,
-          isRunning: zone.isActive,
+          ...pin,
+          isRunning: pin.isActive,
           minutesLeft: currentRun ? Math.max(0, 
             Math.ceil((new Date(currentRun.endsAt).getTime() - Date.now()) / (1000 * 60))
           ) : 0,
@@ -148,7 +148,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         lastUpdated: systemStatus.lastUpdated.toISOString(),
         connectivity: systemStatus.connectivity,
         masterEnabled: systemStatus.masterEnabled,
-        zones: formattedZones,
+        pins: formattedPins,
         activeRuns: activeRuns.length,
         upcomingSchedules,
         rainDelay: {
@@ -166,19 +166,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Zone Control - Start a zone
-  app.post("/zone/on/:zone", requireAuth, async (req: Request, res: Response) => {
+  // Pin Control - Start a pin
+  app.post("/pin/on/:pin", requireAuth, async (req: Request, res: Response) => {
     try {
-      const zoneNumber = parseInt(req.params.zone);
-      const { duration = 30 } = zoneControlSchema.parse(req.body);
+      const pinNumber = parseInt(req.params.pin);
+      const { duration = 30 } = pinControlSchema.parse(req.body);
       
-      const zone = await storage.getZoneByNumber(zoneNumber);
-      if (!zone) {
-        return res.status(404).json({ error: `Zone ${zoneNumber} not found` });
+      const pin = await storage.getPinByNumber(pinNumber);
+      if (!pin) {
+        return res.status(404).json({ error: `Pin ${pinNumber} not found` });
       }
 
-      if (!zone.isEnabled) {
-        return res.status(400).json({ error: `Zone ${zoneNumber} is disabled` });
+      if (!pin.isEnabled) {
+        return res.status(400).json({ error: `Pin ${pinNumber} is disabled` });
       }
 
       // Check for rain delay and master control
@@ -193,17 +193,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(423).json({ error: "Rain delay is active" });
       }
 
-      // Cancel any existing run for this zone
-      const existingRuns = await storage.getActiveZoneRuns();
-      const existingRun = existingRuns.find(run => run.zoneId === zone.id);
+      // Cancel any existing run for this pin
+      const existingRuns = await storage.getActivePinRuns();
+      const existingRun = existingRuns.find(run => run.pinId === pin.id);
       if (existingRun) {
-        await storage.cancelZoneRun(existingRun.id);
+        await storage.cancelPinRun(existingRun.id);
       }
 
-      // Create new zone run
+      // Create new pin run
       const endsAt = new Date(Date.now() + duration * 60 * 1000);
-      const zoneRun = await storage.createZoneRun({
-        zoneId: zone.id,
+      const pinRun = await storage.createPinRun({
+        pinId: pin.id,
         duration,
         source: "manual",
         scheduleId: null,
@@ -214,91 +214,91 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Set automatic completion timer
       setTimeout(async () => {
         try {
-          await storage.completeZoneRun(zoneRun.id);
+          await storage.completePinRun(pinRun.id);
           
           // Create notification
           await storage.createNotification({
             userId: req.userId,
-            type: "zone_completed",
-            title: "Zone Completed",
-            message: `${zone.name} (Zone ${zone.zoneNumber}) has completed its ${duration}-minute run`,
+            type: "pin_completed",
+            title: "Pin Completed",
+            message: `${pin.name} (Pin ${pin.pinNumber}) has completed its ${duration}-minute run`,
             read: 0,
-            relatedZoneId: zone.id,
+            relatedPinId: pin.id,
             relatedScheduleId: null,
           });
         } catch (error) {
-          console.error("Failed to complete zone run:", error);
+          console.error("Failed to complete pin run:", error);
         }
       }, duration * 60 * 1000);
 
       res.json({
-        zone: zoneNumber,
-        gpioPin: zone.gpioPin,
-        name: zone.name,
+        pin: pinNumber,
+        gpioPin: pin.gpioPin,
+        name: pin.name,
         running: true,
         duration,
         minutesLeft: duration,
-        runId: zoneRun.id,
+        runId: pinRun.id,
       });
     } catch (error) {
-      console.error("Failed to start zone:", error);
-      res.status(400).json({ error: "Failed to start zone" });
+      console.error("Failed to start pin:", error);
+      res.status(400).json({ error: "Failed to start pin" });
     }
   });
 
-  // Zone Control - Stop a zone
-  app.post("/zone/off/:zone", requireAuth, async (req: Request, res: Response) => {
+  // Pin Control - Stop a pin
+  app.post("/pin/off/:pin", requireAuth, async (req: Request, res: Response) => {
     try {
-      const zoneNumber = parseInt(req.params.zone);
+      const pinNumber = parseInt(req.params.pin);
       
-      const zone = await storage.getZoneByNumber(zoneNumber);
-      if (!zone) {
-        return res.status(404).json({ error: `Zone ${zoneNumber} not found` });
+      const pin = await storage.getPinByNumber(pinNumber);
+      if (!pin) {
+        return res.status(404).json({ error: `Pin ${pinNumber} not found` });
       }
 
       // Find and cancel active run
-      const activeRuns = await storage.getActiveZoneRuns();
-      const activeRun = activeRuns.find(run => run.zoneId === zone.id);
+      const activeRuns = await storage.getActivePinRuns();
+      const activeRun = activeRuns.find(run => run.pinId === pin.id);
       
       if (activeRun) {
-        await storage.cancelZoneRun(activeRun.id);
+        await storage.cancelPinRun(activeRun.id);
         
         // Create notification
         await storage.createNotification({
           userId: req.userId,
-          type: "zone_completed",
-          title: "Zone Stopped",
-          message: `${zone.name} (Zone ${zone.zoneNumber}) was manually stopped`,
+          type: "pin_completed",
+          title: "Pin Stopped",
+          message: `${pin.name} (Pin ${pin.pinNumber}) was manually stopped`,
           read: 0,
-          relatedZoneId: zone.id,
+          relatedPinId: pin.id,
           relatedScheduleId: null,
         });
       }
 
       res.json({
-        zone: zoneNumber,
-        gpioPin: zone.gpioPin,
-        name: zone.name,
+        pin: pinNumber,
+        gpioPin: pin.gpioPin,
+        name: pin.name,
         running: false,
         minutesLeft: 0,
       });
     } catch (error) {
-      console.error("Failed to stop zone:", error);
-      res.status(500).json({ error: "Failed to stop zone" });
+      console.error("Failed to stop pin:", error);
+      res.status(500).json({ error: "Failed to stop pin" });
     }
   });
 
-  // Zone Management - CRUD operations
-  app.get("/api/zones", requireAuth, async (req: Request, res: Response) => {
+  // Pin Management - CRUD operations
+  app.get("/api/pins", requireAuth, async (req: Request, res: Response) => {
     try {
-      const zones = await storage.getAllZones();
-      const activeRuns = await storage.getActiveZoneRuns();
+      const pins = await storage.getAllPins();
+      const activeRuns = await storage.getActivePinRuns();
 
-      const zonesWithStatus = zones.map(zone => {
-        const activeRun = activeRuns.find(run => run.zoneId === zone.id);
+      const pinsWithStatus = pins.map(pin => {
+        const activeRun = activeRuns.find(run => run.pinId === pin.id);
         return {
-          ...zone,
-          isRunning: zone.isActive,
+          ...pin,
+          isRunning: pin.isActive,
           minutesLeft: activeRun ? Math.max(0, 
             Math.ceil((new Date(activeRun.endsAt).getTime() - Date.now()) / (1000 * 60))
           ) : 0,
@@ -306,25 +306,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         };
       });
 
-      res.json(zonesWithStatus);
+      res.json(pinsWithStatus);
     } catch (error) {
-      res.status(500).json({ error: "Failed to fetch zones" });
+      res.status(500).json({ error: "Failed to fetch pins" });
     }
   });
 
-  app.get("/api/zones/:id", requireAuth, async (req: Request, res: Response) => {
+  app.get("/api/pins/:id", requireAuth, async (req: Request, res: Response) => {
     try {
-      const zone = await storage.getZone(req.params.id);
-      if (!zone) {
-        return res.status(404).json({ error: "Zone not found" });
+      const pin = await storage.getPin(req.params.id);
+      if (!pin) {
+        return res.status(404).json({ error: "Pin not found" });
       }
-      res.json(zone);
+      res.json(pin);
     } catch (error) {
-      res.status(500).json({ error: "Failed to fetch zone" });
+      res.status(500).json({ error: "Failed to fetch pin" });
     }
   });
 
-  app.put("/api/zones/:id", requireAuth, async (req: Request, res: Response) => {
+  app.put("/api/pins/:id", requireAuth, async (req: Request, res: Response) => {
     try {
       const updates = z.object({
         name: z.string().optional(),
@@ -332,13 +332,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         defaultDuration: z.number().min(1).max(12 * 60).optional(),
       }).parse(req.body);
 
-      const zone = await storage.updateZone(req.params.id, updates);
-      if (!zone) {
-        return res.status(404).json({ error: "Zone not found" });
+      const pin = await storage.updatePin(req.params.id, updates);
+      if (!pin) {
+        return res.status(404).json({ error: "Pin not found" });
       }
-      res.json(zone);
+      res.json(pin);
     } catch (error) {
-      res.status(400).json({ error: "Failed to update zone" });
+      res.status(400).json({ error: "Failed to update pin" });
     }
   });
 

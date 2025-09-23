@@ -102,39 +102,39 @@ export default function Dashboard() {
     refetchInterval: 5000,
   });
 
-  const { data: backendZones = [], isLoading: backendZonesLoading } = useQuery({
-    queryKey: ['/api/zones'],
+  const { data: backendPins = [], isLoading: backendPinsLoading } = useQuery({
+    queryKey: ['/api/pins'],
     refetchInterval: 10000,
     enabled: !piDiagnostics.isOnline, // Only use backend when Pi is offline
   });
   
   // Use Pi data when available, otherwise fallback to backend
   const systemStatus = piDiagnostics.isOnline ? piStatus : backendStatus;
-  const zones = piDiagnostics.isOnline ? piZones : (backendZones as any[]);
+  const pins = piDiagnostics.isOnline ? piZones : (backendPins as any[]);
   const isLoading = piDiagnostics.isOnline ? 
     (piStatusLoading || piZonesLoading) : 
-    (backendStatusLoading || backendZonesLoading);
+    (backendStatusLoading || backendPinsLoading);
 
   // Pi zone control hooks
   const piStartZoneMutation = usePiStartZone();
   
-  // Fallback backend zone control
-  const backendStartZoneMutation = useMutation({
-    mutationFn: async ({ zone, duration }: { zone: number; duration: number }) => {
-      return apiRequest('POST', `/zone/on/${zone}`, { duration });
+  // Fallback backend pin control
+  const backendStartPinMutation = useMutation({
+    mutationFn: async ({ pin, duration }: { pin: number; duration: number }) => {
+      return apiRequest('POST', `/pin/on/${pin}`, { duration });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/status'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/zones'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/pins'] });
       toast({
-        title: "Zone Started",
-        description: "Zone activated successfully",
+        title: "Pin Started",
+        description: "Pin activated successfully",
       });
     },
     onError: (error: any) => {
       toast({
         title: "Error",
-        description: error.response?.data?.error || "Failed to start zone",
+        description: error.response?.data?.error || "Failed to start pin",
         variant: "destructive",
       });
     },
@@ -143,14 +143,14 @@ export default function Dashboard() {
   // Pi zone control hooks  
   const piStopZoneMutation = usePiStopZone();
   
-  // Fallback backend zone control
-  const backendStopZoneMutation = useMutation({
-    mutationFn: async (zone: number) => {
-      return apiRequest('POST', `/zone/off/${zone}`);
+  // Fallback backend pin control
+  const backendStopPinMutation = useMutation({
+    mutationFn: async (pin: number) => {
+      return apiRequest('POST', `/pin/off/${pin}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/status'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/zones'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/pins'] });
       toast({
         title: "Zone Stopped",
         description: "Zone deactivated successfully",
@@ -166,12 +166,12 @@ export default function Dashboard() {
   });
 
   // Combined mutation states for UI feedback
-  const startZoneMutation = {
-    isPending: piStartZoneMutation.isPending || backendStartZoneMutation.isPending,
+  const startPinMutation = {
+    isPending: piStartZoneMutation.isPending || backendStartPinMutation.isPending,
   };
   
-  const stopZoneMutation = {
-    isPending: piStopZoneMutation.isPending || backendStopZoneMutation.isPending,
+  const stopPinMutation = {
+    isPending: piStopZoneMutation.isPending || backendStopPinMutation.isPending,
   };
 
 
@@ -221,61 +221,61 @@ export default function Dashboard() {
 
   // Calculate stats from system data
   const statsData = {
-    totalZones: zones.length,
-    activeZones: zones.filter((zone: any) => zone.isRunning || zone.isActive).length,
-    enabledZones: zones.filter((zone: any) => zone.isEnabled).length,
+    totalPins: pins.length,
+    activePins: pins.filter((pin: any) => pin.isRunning || pin.isActive).length,
+    enabledPins: pins.filter((pin: any) => pin.isEnabled).length,
     upcomingSchedules: piDiagnostics.isOnline ? 
       0 : 
       (backendStatus?.upcomingSchedules?.length || 0),
   };
 
-  // Get active zones for the status display
-  const activeZones = zones.filter((zone: any) => zone.isRunning || zone.isActive);
+  // Get active pins for the status display
+  const activePins = pins.filter((pin: any) => pin.isRunning || pin.isActive);
   const upcomingSchedules = piDiagnostics.isOnline ? 
     [] : 
     (backendStatus?.upcomingSchedules?.slice(0, 1) || []);
 
-  const handleQuickStart = (zoneNumber: number, duration: number = 30) => {
-    // Check master control before starting any zone
+  const handleQuickStart = (pinNumber: number, duration: number = 30) => {
+    // Check master control before starting any pin
     if (!backendStatus?.masterEnabled) {
       toast({
         title: "System Disabled",
-        description: "Master control is disabled. Enable it to start zones.",
+        description: "Master control is disabled. Enable it to start pins.",
         variant: "destructive",
       });
       return;
     }
 
     if (piDiagnostics.isOnline) {
-      piStartZoneMutation.mutate({ zone: zoneNumber, duration });
+      piStartZoneMutation.mutate({ zone: pinNumber, duration });
     } else {
-      backendStartZoneMutation.mutate({ zone: zoneNumber, duration });
+      backendStartPinMutation.mutate({ pin: pinNumber, duration });
     }
   };
 
-  const handleQuickStop = (zoneNumber: number) => {
+  const handleQuickStop = (pinNumber: number) => {
     if (piDiagnostics.isOnline) {
-      piStopZoneMutation.mutate(zoneNumber);
+      piStopZoneMutation.mutate(pinNumber);
     } else {
-      backendStopZoneMutation.mutate(zoneNumber);
+      backendStopPinMutation.mutate(pinNumber);
     }
   };
 
-  // Get custom duration for a zone, default to '10'
-  const getCustomDuration = (zoneId: string): string => {
-    return customDurations[zoneId] || '10';
+  // Get custom duration for a pin, default to '10'
+  const getCustomDuration = (pinId: string): string => {
+    return customDurations[pinId] || '10';
   };
 
-  // Update custom duration for a zone
-  const setCustomDuration = (zoneId: string, duration: string) => {
-    setCustomDurations(prev => ({ ...prev, [zoneId]: duration }));
+  // Update custom duration for a pin
+  const setCustomDuration = (pinId: string, duration: string) => {
+    setCustomDurations(prev => ({ ...prev, [pinId]: duration }));
   };
 
   // Handle custom duration start
-  const handleCustomStart = (zoneNumber: number, zoneId: string) => {
-    const duration = parseInt(getCustomDuration(zoneId));
+  const handleCustomStart = (pinNumber: number, pinId: string) => {
+    const duration = parseInt(getCustomDuration(pinId));
     if (duration > 0 && duration <= 720) { // Max 12 hours
-      handleQuickStart(zoneNumber, duration);
+      handleQuickStart(pinNumber, duration);
     } else {
       toast({
         title: "Invalid Duration",
@@ -332,8 +332,8 @@ export default function Dashboard() {
             <CardContent className="p-4 md:p-6">
               <div className="flex items-center">
                 <div className="flex-1">
-                  <p id="total-zones-title" className="text-xs md:text-sm font-medium text-muted-foreground mobile-text-caption">Total Zones</p>
-                  <p id="total-zones-desc" className="text-xl md:text-2xl font-bold text-foreground mobile-text-primary" aria-label={`${statsData.totalZones} zones configured`}>
+                  <p id="total-zones-title" className="text-xs md:text-sm font-medium text-muted-foreground mobile-text-caption">Total Pins</p>
+                  <p id="total-zones-desc" className="text-xl md:text-2xl font-bold text-foreground mobile-text-primary" aria-label={`${statsData.totalPins} pins configured`}>
                     {statsData.totalZones}
                   </p>
                 </div>
@@ -346,7 +346,7 @@ export default function Dashboard() {
 
           <Card 
             data-testid="stats-active-zones" 
-            className={`zone-card mobile-card touch-feedback-soft ${statsData.activeZones > 0 ? 'zone-active-glow' : ''}`}
+            className={`zone-card mobile-card touch-feedback-soft ${statsData.activePins > 0 ? 'zone-active-glow' : ''}`}
             role="article"
             aria-labelledby="active-zones-title"
             aria-describedby="active-zones-desc"
@@ -355,18 +355,18 @@ export default function Dashboard() {
             <CardContent className="p-4 md:p-6">
               <div className="flex items-center">
                 <div className="flex-1">
-                  <p id="active-zones-title" className="text-xs md:text-sm font-medium text-muted-foreground mobile-text-caption">Active Zones</p>
+                  <p id="active-zones-title" className="text-xs md:text-sm font-medium text-muted-foreground mobile-text-caption">Active Pins</p>
                   <p 
                     id="active-zones-desc" 
                     className="text-xl md:text-2xl font-bold text-primary gradient-text mobile-text-primary"
-                    aria-label={`${statsData.activeZones} ${statsData.activeZones === 1 ? 'zone is' : 'zones are'} currently running`}
+                    aria-label={`${statsData.activePins} ${statsData.activePins === 1 ? 'pin is' : 'pins are'} currently running`}
                   >
-                    {statsData.activeZones}
+                    {statsData.activePins}
                   </p>
                 </div>
                 <div 
                   className={`p-2 md:p-3 rounded-lg border transition-all duration-300 ${
-                    statsData.activeZones > 0 
+                    statsData.activePins > 0 
                       ? 'bg-primary/20 border-primary/50 pulse-green' 
                       : 'bg-primary/10 border-primary/20'
                   }`}
@@ -548,42 +548,42 @@ export default function Dashboard() {
                   <div className="p-2 rounded-lg bg-primary/20 border border-primary/30 mr-3">
                     <Activity className="w-5 h-5 text-primary" />
                   </div>
-                  <span className="gradient-text">Active Zones</span>
+                  <span className="gradient-text">Active Pins</span>
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {activeZones.length === 0 ? (
+                {activePins.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
                     <div className="p-4 rounded-full bg-muted/50 w-fit mx-auto mb-4">
                       <Droplets className="w-12 h-12 opacity-50" />
                     </div>
-                    <p className="font-medium">No zones currently running</p>
+                    <p className="font-medium">No pins currently running</p>
                     <p className="text-sm">Use quick controls to start watering</p>
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {activeZones.map((zone: any) => (
-                      <div key={zone.id} className="zone-active-glow p-4 rounded-lg relative overflow-hidden">
+                    {activePins.map((pin: any) => (
+                      <div key={pin.id} className="zone-active-glow p-4 rounded-lg relative overflow-hidden">
                         <div className="flex items-center justify-between relative z-10">
                           <div className="flex items-center space-x-3">
                             <div className="w-4 h-4 bg-primary rounded-full pulse-green" />
                             <div>
-                              <h4 className="font-medium text-foreground">{zone.name}</h4>
-                              <p className="text-sm text-muted-foreground">Zone {zone.zoneNumber} • GPIO {zone.gpioPin}</p>
+                              <h4 className="font-medium text-foreground">{pin.name}</h4>
+                              <p className="text-sm text-muted-foreground">Pin {pin.pinNumber} • GPIO {pin.gpioPin}</p>
                             </div>
                           </div>
                           <div className="flex items-center space-x-3">
                             <div className="text-right">
-                              <p className="text-sm font-medium text-primary">{zone.minutesLeft} min left</p>
-                              <p className="text-xs text-muted-foreground capitalize">{zone.currentRunSource || 'Manual'}</p>
+                              <p className="text-sm font-medium text-primary">{pin.minutesLeft} min left</p>
+                              <p className="text-xs text-muted-foreground capitalize">{pin.currentRunSource || 'Manual'}</p>
                             </div>
                             <Button
                               size="sm"
                               variant="destructive"
                               className="modern-button h-9 w-9 p-0"
-                              onClick={() => handleQuickStop(zone.zoneNumber)}
-                              disabled={stopZoneMutation.isPending}
-                              data-testid={`stop-zone-${zone.zoneNumber}`}
+                              onClick={() => handleQuickStop(pin.pinNumber)}
+                              disabled={stopPinMutation.isPending}
+                              data-testid={`stop-pin-${pin.pinNumber}`}
                             >
                               <Square className="w-4 h-4" />
                             </Button>
@@ -863,19 +863,19 @@ export default function Dashboard() {
                   <div className="p-2 rounded-lg bg-chart-1/20 border border-chart-1/30 mr-3">
                     <Activity className="w-5 h-5 text-chart-1" />
                   </div>
-                  Zone Usage Today
+                  Pin Usage Today
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {zones.filter((zone: any) => zone.isEnabled !== false && zone.enabled !== false).slice(0, 3).map((zone: any, index: number) => {
+                  {pins.filter((pin: any) => pin.isEnabled !== false && pin.enabled !== false).slice(0, 3).map((pin: any, index: number) => {
                     // Mock usage data for demo purposes
                     const usage = [85, 65, 45][index] || 30;
                     
                     return (
-                      <div key={zone.id} className="p-3 glass-effect rounded-lg border border-border/50">
+                      <div key={pin.id} className="p-3 glass-effect rounded-lg border border-border/50">
                         <div className="flex justify-between items-center mb-2">
-                          <span className="text-sm font-medium text-foreground">{zone.name}</span>
+                          <span className="text-sm font-medium text-foreground">{pin.name}</span>
                           <span className="text-sm font-bold text-primary">
                             {Math.floor(usage * 0.3)} min
                           </span>
