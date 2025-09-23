@@ -33,13 +33,13 @@ import {
   usePiConfig, 
   useSavePiConfig, 
   usePiDiagnostics,
-  usePiZones 
+  usePiPinsTransformed 
 } from "@/hooks/use-pi-api";
 import { PiConnectionError, getNetworkTroubleshootingTips } from "@/lib/pi-api";
-import type { Zone } from "@shared/schema";
+import type { Pin } from "@shared/schema";
 
-// Extended zone type for UI with runtime properties
-interface ZoneWithStatus extends Zone {
+// Extended pin type for UI with runtime properties
+interface PinWithStatus extends Pin {
   isRunning?: boolean;
   minutesLeft?: number;
   currentRunSource?: string;
@@ -48,7 +48,7 @@ interface ZoneWithStatus extends Zone {
 export default function Settings() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [editingZone, setEditingZone] = useState<ZoneWithStatus | null>(null);
+  const [editingPin, setEditingPin] = useState<PinWithStatus | null>(null);
   const [testDuration, setTestDuration] = useState<number>(5);
   const [piIpAddress, setPiIpAddress] = useState<string>(localStorage.getItem('piIpAddress') || '192.168.1.24');
   const [piPort, setPiPort] = useState<number>(parseInt(localStorage.getItem('piPort') || '8000'));
@@ -75,13 +75,13 @@ export default function Settings() {
   const savePiConfigMutation = useSavePiConfig();
   const piDiagnostics = usePiDiagnostics();
 
-  const { data: zones = [], isLoading } = useQuery({
-    queryKey: ['/api/zones'],
+  const { data: pins = [], isLoading } = useQuery({
+    queryKey: ['/api/pins'],
     refetchInterval: 10000, // Refresh every 10 seconds
   });
   
-  // Ensure zones is properly typed
-  const typedZones = zones as ZoneWithStatus[];
+  // Ensure pins is properly typed
+  const typedPins = pins as PinWithStatus[];
 
   const { data: systemStatus } = useQuery({
     queryKey: ['/api/status'],
@@ -115,65 +115,65 @@ export default function Settings() {
     }
   }, [rainDelaySettingsData]);
 
-  const updateZoneMutation = useMutation({
-    mutationFn: async ({ zoneId, updates }: { zoneId: string; updates: any }) => {
-      return apiRequest('PUT', `/api/zones/${zoneId}`, updates);
+  const updatePinMutation = useMutation({
+    mutationFn: async ({ pinId, updates }: { pinId: string; updates: any }) => {
+      return apiRequest('PUT', `/api/pins/${pinId}`, updates);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/zones'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/pins'] });
       queryClient.invalidateQueries({ queryKey: ['/api/status'] });
-      setEditingZone(null);
+      setEditingPin(null);
       toast({
-        title: "Zone Updated",
-        description: "Zone configuration saved successfully",
+        title: "Pin Updated",
+        description: "Pin configuration saved successfully",
       });
     },
     onError: (error: any) => {
       toast({
         title: "Error",
-        description: error.response?.data?.error || "Failed to update zone",
+        description: error.response?.data?.error || "Failed to update pin",
         variant: "destructive",
       });
     },
   });
 
-  const testZoneMutation = useMutation({
-    mutationFn: async ({ zone, duration }: { zone: number; duration: number }) => {
-      return apiRequest('POST', `/zone/on/${zone}`, { duration });
+  const testPinMutation = useMutation({
+    mutationFn: async ({ pin, duration }: { pin: number; duration: number }) => {
+      return apiRequest('POST', `/pin/on/${pin}`, { duration });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/zones'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/pins'] });
       queryClient.invalidateQueries({ queryKey: ['/api/status'] });
       toast({
-        title: "Zone Test Started",
-        description: `Zone test running for ${testDuration} minutes`,
+        title: "Pin Test Started",
+        description: `Pin test running for ${testDuration} minutes`,
       });
     },
     onError: (error: any) => {
       toast({
         title: "Error",
-        description: error.response?.data?.error || "Failed to start zone test",
+        description: error.response?.data?.error || "Failed to start pin test",
         variant: "destructive",
       });
     },
   });
 
-  const stopZoneMutation = useMutation({
-    mutationFn: async (zone: number) => {
-      return apiRequest('POST', `/zone/off/${zone}`);
+  const stopPinMutation = useMutation({
+    mutationFn: async (pin: number) => {
+      return apiRequest('POST', `/pin/off/${pin}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/zones'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/pins'] });
       queryClient.invalidateQueries({ queryKey: ['/api/status'] });
       toast({
-        title: "Zone Stopped",
-        description: "Zone deactivated successfully",
+        title: "Pin Stopped",
+        description: "Pin deactivated successfully",
       });
     },
     onError: (error: any) => {
       toast({
         title: "Error",
-        description: error.response?.data?.error || "Failed to stop zone",
+        description: error.response?.data?.error || "Failed to stop pin",
         variant: "destructive",
       });
     },
@@ -279,24 +279,24 @@ export default function Settings() {
     });
   };
 
-  const handleUpdateZone = (zoneId: string, updates: any) => {
-    updateZoneMutation.mutate({ zoneId, updates });
+  const handleUpdatePin = (pinId: string, updates: any) => {
+    updatePinMutation.mutate({ pinId, updates });
   };
 
-  const handleTestZone = (zoneNumber: number) => {
-    testZoneMutation.mutate({ zone: zoneNumber, duration: testDuration });
+  const handleTestPin = (pinNumber: number, duration?: number) => {
+    testPinMutation.mutate({ pin: pinNumber, duration: duration || testDuration });
   };
 
-  const handleStopZone = (zoneNumber: number) => {
-    stopZoneMutation.mutate(zoneNumber);
+  const handleStopPin = (pinNumber: number) => {
+    stopPinMutation.mutate(pinNumber);
   };
 
   const handleSaveEdit = () => {
-    if (editingZone) {
-      handleUpdateZone(editingZone.id, {
-        name: editingZone.name,
-        defaultDuration: editingZone.defaultDuration,
-        isEnabled: editingZone.isEnabled,
+    if (editingPin) {
+      handleUpdatePin(editingPin.id, {
+        name: editingPin.name,
+        defaultDuration: editingPin.defaultDuration,
+        isEnabled: editingPin.isEnabled,
       });
     }
   };
@@ -307,7 +307,7 @@ export default function Settings() {
         <div className="p-4 md:p-6">
           <div className="mb-6">
             <h1 className="text-2xl font-bold text-foreground">Settings</h1>
-            <p className="text-muted-foreground">Zone configuration and system settings</p>
+            <p className="text-muted-foreground">Pin configuration and system settings</p>
           </div>
           <div className="animate-pulse space-y-4">
             <div className="bg-card border border-border rounded-lg h-32" />
@@ -319,16 +319,16 @@ export default function Settings() {
     );
   }
 
-  const activeZones = typedZones.filter((zone: ZoneWithStatus) => zone.isRunning);
-  const enabledZones = typedZones.filter((zone: ZoneWithStatus) => zone.isEnabled);
-  const disabledZones = typedZones.filter((zone: ZoneWithStatus) => !zone.isEnabled);
+  const activePins = typedPins.filter((pin: PinWithStatus) => pin.isRunning);
+  const enabledPins = typedPins.filter((pin: PinWithStatus) => pin.isEnabled);
+  const disabledPins = typedPins.filter((pin: PinWithStatus) => !pin.isEnabled);
 
   return (
     <div className="flex-1 flex flex-col pb-20">
       <div className="p-4 md:p-6">
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-foreground">Settings</h1>
-          <p className="text-muted-foreground">Zone configuration and system settings</p>
+          <p className="text-muted-foreground">Pin configuration and system settings</p>
         </div>
 
         {/* Mixed Content Security Warning */}
@@ -485,7 +485,7 @@ export default function Settings() {
         </Card>
 
         {/* System Status Bar */}
-        <Card className="mb-6" data-testid="zone-status-overview">
+        <Card className="mb-6" data-testid="pin-status-overview">
           <CardContent className="p-6">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div className="flex items-center space-x-3">
@@ -493,8 +493,8 @@ export default function Settings() {
                   <Droplets className="w-5 h-5 text-blue-600" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Total Zones</p>
-                  <p className="text-lg font-semibold">{typedZones.length}</p>
+                  <p className="text-sm text-muted-foreground">Total Pins</p>
+                  <p className="text-lg font-semibold">{typedPins.length}</p>
                 </div>
               </div>
               
@@ -503,8 +503,8 @@ export default function Settings() {
                   <Activity className="w-5 h-5 text-green-600" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Active Zones</p>
-                  <p className="text-lg font-semibold">{activeZones.length}</p>
+                  <p className="text-sm text-muted-foreground">Active Pins</p>
+                  <p className="text-lg font-semibold">{activePins.length}</p>
                 </div>
               </div>
               
@@ -513,8 +513,8 @@ export default function Settings() {
                   <Zap className="w-5 h-5 text-orange-600" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Enabled Zones</p>
-                  <p className="text-lg font-semibold">{enabledZones.length}</p>
+                  <p className="text-sm text-muted-foreground">Enabled Pins</p>
+                  <p className="text-lg font-semibold">{enabledPins.length}</p>
                 </div>
               </div>
               
@@ -541,19 +541,19 @@ export default function Settings() {
           </CardContent>
         </Card>
 
-        <Tabs defaultValue="all" className="space-y-6" data-testid="zone-tabs">
+        <Tabs defaultValue="all" className="space-y-6" data-testid="pin-tabs">
           <TabsList>
             <TabsTrigger value="all" data-testid="tab-all">
-              All Zones ({typedZones.length})
+              All Pins ({typedPins.length})
             </TabsTrigger>
             <TabsTrigger value="active" data-testid="tab-active">
-              Active ({activeZones.length})
+              Active ({activePins.length})
             </TabsTrigger>
             <TabsTrigger value="enabled" data-testid="tab-enabled">
-              Enabled ({enabledZones.length})
+              Enabled ({enabledPins.length})
             </TabsTrigger>
             <TabsTrigger value="disabled" data-testid="tab-disabled">
-              Disabled ({disabledZones.length})
+              Disabled ({disabledPins.length})
             </TabsTrigger>
             <TabsTrigger value="quick-controls" data-testid="tab-quick-controls">
               <Zap className="w-4 h-4 mr-2" />
@@ -562,50 +562,50 @@ export default function Settings() {
           </TabsList>
 
           <TabsContent value="all">
-            <ZoneGrid 
-              zones={typedZones} 
-              onEdit={setEditingZone}
-              onTest={handleTestZone}
-              onStop={handleStopZone}
-              onToggleEnabled={(zone) => handleUpdateZone(zone.id, { isEnabled: !zone.isEnabled })}
+            <PinGrid 
+              pins={typedPins} 
+              onEdit={setEditingPin}
+              onTest={handleTestPin}
+              onStop={handleStopPin}
+              onToggleEnabled={(pin) => handleUpdatePin(pin.id, { isEnabled: !pin.isEnabled })}
               testDuration={testDuration}
-              isLoading={testZoneMutation.isPending || stopZoneMutation.isPending}
+              isLoading={testPinMutation.isPending || stopPinMutation.isPending}
             />
           </TabsContent>
 
           <TabsContent value="active">
-            <ZoneGrid 
-              zones={activeZones} 
-              onEdit={setEditingZone}
-              onTest={handleTestZone}
-              onStop={handleStopZone}
-              onToggleEnabled={(zone) => handleUpdateZone(zone.id, { isEnabled: !zone.isEnabled })}
+            <PinGrid 
+              pins={activePins} 
+              onEdit={setEditingPin}
+              onTest={handleTestPin}
+              onStop={handleStopPin}
+              onToggleEnabled={(pin) => handleUpdatePin(pin.id, { isEnabled: !pin.isEnabled })}
               testDuration={testDuration}
-              isLoading={testZoneMutation.isPending || stopZoneMutation.isPending}
+              isLoading={testPinMutation.isPending || stopPinMutation.isPending}
             />
           </TabsContent>
 
           <TabsContent value="enabled">
-            <ZoneGrid 
-              zones={enabledZones} 
-              onEdit={setEditingZone}
-              onTest={handleTestZone}
-              onStop={handleStopZone}
-              onToggleEnabled={(zone) => handleUpdateZone(zone.id, { isEnabled: !zone.isEnabled })}
+            <PinGrid 
+              pins={enabledPins} 
+              onEdit={setEditingPin}
+              onTest={handleTestPin}
+              onStop={handleStopPin}
+              onToggleEnabled={(pin) => handleUpdatePin(pin.id, { isEnabled: !pin.isEnabled })}
               testDuration={testDuration}
-              isLoading={testZoneMutation.isPending || stopZoneMutation.isPending}
+              isLoading={testPinMutation.isPending || stopPinMutation.isPending}
             />
           </TabsContent>
 
           <TabsContent value="disabled">
-            <ZoneGrid 
-              zones={disabledZones} 
-              onEdit={setEditingZone}
-              onTest={handleTestZone}
-              onStop={handleStopZone}
-              onToggleEnabled={(zone) => handleUpdateZone(zone.id, { isEnabled: !zone.isEnabled })}
+            <PinGrid 
+              pins={disabledPins} 
+              onEdit={setEditingPin}
+              onTest={handleTestPin}
+              onStop={handleStopPin}
+              onToggleEnabled={(pin) => handleUpdatePin(pin.id, { isEnabled: !pin.isEnabled })}
               testDuration={testDuration}
-              isLoading={testZoneMutation.isPending || stopZoneMutation.isPending}
+              isLoading={testPinMutation.isPending || stopPinMutation.isPending}
             />
           </TabsContent>
 
@@ -614,18 +614,18 @@ export default function Settings() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Zap className="w-5 h-5" />
-                  Zone Quick Controls
+                  Pin Quick Controls
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {typedZones.map((zone) => {
-                    const isActive = zone.isRunning || zone.isActive;
-                    const customDuration = customDurations[zone.id] || "10";
+                  {typedPins.map((pin) => {
+                    const isActive = pin.isRunning;
+                    const customDuration = customDurations[pin.id] || "10";
                     
                     return (
                       <div
-                        key={zone.id}
+                        key={pin.id}
                         className={`p-4 rounded-lg border transition-all ${
                           isActive 
                             ? 'border-primary/50 bg-primary/5' 
@@ -637,21 +637,21 @@ export default function Settings() {
                             <div className={`w-3 h-3 rounded-full ${
                               isActive ? 'bg-primary pulse-green' : 'bg-muted-foreground/30'
                             }`} />
-                            <h4 className="font-medium">{zone.name}</h4>
+                            <h4 className="font-medium">{pin.name}</h4>
                           </div>
                           <div className="flex items-center space-x-2">
                             <Button
                               size="sm"
                               variant="ghost"
-                              onClick={() => setEditingZone(zone)}
-                              data-testid={`edit-zone-${zone.id}`}
+                              onClick={() => setEditingPin(pin)}
+                              data-testid={`edit-pin-${pin.id}`}
                             >
                               <Edit className="w-4 h-4" />
                             </Button>
                             <Switch
-                              checked={zone.isEnabled}
-                              onCheckedChange={(checked) => handleUpdateZone(zone.id, { isEnabled: checked })}
-                              data-testid={`toggle-zone-${zone.id}`}
+                              checked={pin.isEnabled}
+                              onCheckedChange={(checked) => handleUpdatePin(pin.id, { isEnabled: checked })}
+                              data-testid={`toggle-pin-${pin.id}`}
                             />
                           </div>
                         </div>
@@ -663,17 +663,17 @@ export default function Settings() {
                               min="1"
                               max="720"
                               value={customDuration}
-                              onChange={(e) => setCustomDurations(prev => ({ ...prev, [zone.id]: e.target.value }))}
+                              onChange={(e) => setCustomDurations(prev => ({ ...prev, [pin.id]: e.target.value }))}
                               className="h-8 text-center flex-1"
                               placeholder="10"
-                              disabled={!zone.isEnabled || isActive}
-                              data-testid={`duration-input-${zone.id}`}
+                              disabled={!pin.isEnabled || isActive}
+                              data-testid={`duration-input-${pin.id}`}
                             />
                             <Button
                               size="sm"
-                              onClick={() => handleTestZone(zone, parseInt(customDuration) || 10)}
-                              disabled={!zone.isEnabled || isActive || testZoneMutation.isPending}
-                              data-testid={`start-zone-${zone.id}`}
+                              onClick={() => handleTestPin(pin.pinNumber, parseInt(customDuration) || 10)}
+                              disabled={!pin.isEnabled || isActive || testPinMutation.isPending}
+                              data-testid={`start-pin-${pin.id}`}
                             >
                               <Play className="w-4 h-4 mr-1" />
                               Start
@@ -684,9 +684,9 @@ export default function Settings() {
                             size="sm"
                             variant={isActive ? "destructive" : "outline"}
                             className="w-full"
-                            onClick={() => handleStopZone(zone)}
-                            disabled={!zone.isEnabled || !isActive || stopZoneMutation.isPending}
-                            data-testid={`stop-zone-${zone.id}`}
+                            onClick={() => handleStopPin(pin.pinNumber)}
+                            disabled={!pin.isEnabled || !isActive || stopPinMutation.isPending}
+                            data-testid={`stop-pin-${pin.id}`}
                           >
                             <Square className="w-4 h-4 mr-1" />
                             {isActive ? "Stop" : "Quick Stop"}
@@ -694,18 +694,18 @@ export default function Settings() {
                         </div>
                         
                         <div className="text-xs text-muted-foreground mt-2">
-                          Zone {zone.zoneNumber} • GPIO {zone.gpioPin}
+                          Pin {pin.pinNumber} • GPIO {pin.gpioPin}
                         </div>
                       </div>
                     );
                   })}
                 </div>
                 
-                {typedZones.length === 0 && (
+                {typedPins.length === 0 && (
                   <div className="text-center py-8 text-muted-foreground">
                     <Zap className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                    <p className="font-medium">No zones configured</p>
-                    <p className="text-sm">Add zones to enable quick controls</p>
+                    <p className="font-medium">No pins configured</p>
+                    <p className="text-sm">Add pins to enable quick controls</p>
                   </div>
                 )}
               </CardContent>
@@ -715,23 +715,23 @@ export default function Settings() {
         </Tabs>
       </div>
 
-      {/* Edit Zone Dialog */}
-      <Dialog open={!!editingZone} onOpenChange={(open) => !open && setEditingZone(null)}>
-        <DialogContent data-testid="edit-zone-dialog">
+      {/* Edit Pin Dialog */}
+      <Dialog open={!!editingPin} onOpenChange={(open) => !open && setEditingPin(null)}>
+        <DialogContent data-testid="edit-pin-dialog">
           <DialogHeader>
-            <DialogTitle>Edit Zone {editingZone?.zoneNumber}</DialogTitle>
+            <DialogTitle>Edit Pin {editingPin?.pinNumber}</DialogTitle>
           </DialogHeader>
           
-          {editingZone && (
+          {editingPin && (
             <div className="space-y-4">
               <div>
-                <Label htmlFor="zone-name">Zone Name</Label>
+                <Label htmlFor="pin-name">Pin Name</Label>
                 <Input
-                  id="zone-name"
-                  value={editingZone.name}
-                  onChange={(e) => setEditingZone({...editingZone, name: e.target.value})}
-                  placeholder="Enter zone name"
-                  data-testid="edit-zone-name"
+                  id="pin-name"
+                  value={editingPin.name}
+                  onChange={(e) => setEditingPin({...editingPin, name: e.target.value})}
+                  placeholder="Enter pin name"
+                  data-testid="edit-pin-name"
                 />
               </div>
               
@@ -742,41 +742,41 @@ export default function Settings() {
                   type="number"
                   min="1"
                   max="720"
-                  value={editingZone.defaultDuration}
-                  onChange={(e) => setEditingZone({...editingZone, defaultDuration: Number(e.target.value)})}
-                  data-testid="edit-zone-duration"
+                  value={editingPin.defaultDuration}
+                  onChange={(e) => setEditingPin({...editingPin, defaultDuration: Number(e.target.value)})}
+                  data-testid="edit-pin-duration"
                 />
               </div>
               
               <div className="flex items-center space-x-2">
                 <Switch
-                  id="zone-enabled"
-                  checked={editingZone.isEnabled}
-                  onCheckedChange={(checked) => setEditingZone({...editingZone, isEnabled: checked})}
-                  data-testid="edit-zone-enabled"
+                  id="pin-enabled"
+                  checked={editingPin.isEnabled}
+                  onCheckedChange={(checked) => setEditingPin({...editingPin, isEnabled: checked})}
+                  data-testid="edit-pin-enabled"
                 />
-                <Label htmlFor="zone-enabled">Zone Enabled</Label>
+                <Label htmlFor="pin-enabled">Pin Enabled</Label>
               </div>
 
               <div className="p-3 bg-muted/50 rounded-lg">
                 <p className="text-sm text-muted-foreground">
-                  <strong>GPIO Pin:</strong> {editingZone.gpioPin}<br />
-                  <strong>Zone Number:</strong> {editingZone.zoneNumber}
+                  <strong>GPIO Pin:</strong> {editingPin.gpioPin}<br />
+                  <strong>Pin Number:</strong> {editingPin.pinNumber}
                 </p>
               </div>
             </div>
           )}
           
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEditingZone(null)}>
+            <Button variant="outline" onClick={() => setEditingPin(null)}>
               Cancel
             </Button>
             <Button 
               onClick={handleSaveEdit}
-              disabled={updateZoneMutation.isPending}
-              data-testid="save-zone-changes"
+              disabled={updatePinMutation.isPending}
+              data-testid="save-pin-changes"
             >
-              {updateZoneMutation.isPending ? "Saving..." : "Save Changes"}
+              {updatePinMutation.isPending ? "Saving..." : "Save Changes"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -785,24 +785,24 @@ export default function Settings() {
   );
 }
 
-interface ZoneGridProps {
-  zones: ZoneWithStatus[];
-  onEdit: (zone: ZoneWithStatus) => void;
-  onTest: (zoneNumber: number) => void;
-  onStop: (zoneNumber: number) => void;
-  onToggleEnabled: (zone: ZoneWithStatus) => void;
+interface PinGridProps {
+  pins: PinWithStatus[];
+  onEdit: (pin: PinWithStatus) => void;
+  onTest: (pinNumber: number) => void;
+  onStop: (pinNumber: number) => void;
+  onToggleEnabled: (pin: PinWithStatus) => void;
   testDuration: number;
   isLoading: boolean;
 }
 
-function ZoneGrid({ zones, onEdit, onTest, onStop, onToggleEnabled, testDuration, isLoading }: ZoneGridProps) {
-  if (zones.length === 0) {
+function PinGrid({ pins, onEdit, onTest, onStop, onToggleEnabled, testDuration, isLoading }: PinGridProps) {
+  if (pins.length === 0) {
     return (
       <Card>
         <CardContent className="p-12 text-center">
           <Droplets className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-foreground mb-2">No zones found</h3>
-          <p className="text-muted-foreground">No zones match the current filter</p>
+          <h3 className="text-lg font-semibold text-foreground mb-2">No pins found</h3>
+          <p className="text-muted-foreground">No pins match the current filter</p>
         </CardContent>
       </Card>
     );
@@ -810,21 +810,21 @@ function ZoneGrid({ zones, onEdit, onTest, onStop, onToggleEnabled, testDuration
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-      {zones.map((zone: ZoneWithStatus) => (
-        <Card key={zone.id} className={`${zone.isRunning ? 'ring-2 ring-green-500' : ''}`} data-testid={`zone-card-${zone.zoneNumber}`}>
+      {pins.map((pin: PinWithStatus) => (
+        <Card key={pin.id} className={`${pin.isRunning ? 'ring-2 ring-green-500' : ''}`} data-testid={`pin-card-${pin.pinNumber}`}>
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="text-lg">{zone.name}</CardTitle>
+                <CardTitle className="text-lg">{pin.name}</CardTitle>
                 <p className="text-sm text-muted-foreground">
-                  Zone {zone.zoneNumber} • GPIO {zone.gpioPin}
+                  Pin {pin.pinNumber} • GPIO {pin.gpioPin}
                 </p>
               </div>
               <div className="flex items-center space-x-2">
-                <Badge variant={zone.isEnabled ? "default" : "secondary"}>
-                  {zone.isEnabled ? "Enabled" : "Disabled"}
+                <Badge variant={pin.isEnabled ? "default" : "secondary"}>
+                  {pin.isEnabled ? "Enabled" : "Disabled"}
                 </Badge>
-                {zone.isRunning && (
+                {pin.isRunning && (
                   <Badge variant="destructive">
                     <Activity className="w-3 h-3 mr-1" />
                     Active
@@ -835,16 +835,16 @@ function ZoneGrid({ zones, onEdit, onTest, onStop, onToggleEnabled, testDuration
           </CardHeader>
           
           <CardContent className="space-y-4">
-            {zone.isRunning && (
+            {pin.isRunning && (
               <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium text-green-700 dark:text-green-300">
-                    Running: {zone.minutesLeft} min left
+                    Running: {pin.minutesLeft} min left
                   </span>
                   <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse" />
                 </div>
                 <p className="text-xs text-green-600 dark:text-green-400 mt-1 capitalize">
-                  Source: {zone.currentRunSource || 'Manual'}
+                  Source: {pin.currentRunSource || 'Manual'}
                 </p>
               </div>
             )}
@@ -860,7 +860,7 @@ function ZoneGrid({ zones, onEdit, onTest, onStop, onToggleEnabled, testDuration
                 onCheckedChange={() => onToggleEnabled(zone)}
                 data-testid={`toggle-zone-${zone.zoneNumber}`}
               />
-              <Label className="text-sm">Zone Enabled</Label>
+              <Label className="text-sm">Pin Enabled</Label>
             </div>
             
             <div className="flex space-x-2">
