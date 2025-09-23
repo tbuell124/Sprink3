@@ -728,11 +728,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         lastUpdated: new Date(),
       });
 
-      // If disabling master control, stop all active zones for safety
+      // If disabling master control, stop all active pins for safety
       if (!enabled) {
-        const activeRuns = await storage.getActiveZoneRuns();
+        const activeRuns = await storage.getActivePinRuns();
         for (const run of activeRuns) {
-          await storage.cancelZoneRun(run.id);
+          await storage.cancelPinRun(run.id);
         }
 
         // Create notification
@@ -740,9 +740,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           userId: req.userId,
           type: "system_disabled",
           title: "System Disabled",
-          message: "Master control disabled. All zones stopped for safety.",
+          message: "Master control disabled. All pins stopped for safety.",
           read: 0,
-          relatedZoneId: null,
+          relatedPinId: null,
           relatedScheduleId: null,
         });
       }
